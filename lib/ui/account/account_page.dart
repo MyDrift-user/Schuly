@@ -208,7 +208,7 @@ class _AccountPageState extends State<AccountPage> {
               if (classes.isNotEmpty)
                 FTile(
                   prefix: const Icon(FIcons.bookOpen),
-                  title: const Text('My classes'),
+                  title: const Text('Classes'),
                   details: Text('${classes.length}'),
                   suffix: const Icon(FIcons.chevronRight),
                   onPress: () => _push(const ClassesScreen()),

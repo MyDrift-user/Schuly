@@ -16,7 +16,7 @@ class ClassesScreen extends StatelessWidget {
       ..sort((a, b) => a.className.compareTo(b.className));
     return FScaffold(
       header: FHeader.nested(
-        title: const Text('My classes'),
+        title: const Text('Classes'),
         prefixes: [FHeaderAction.back(onPress: () => Navigator.of(context).pop())],
       ),
       childPad: false,
