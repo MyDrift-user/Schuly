@@ -92,9 +92,11 @@ class HomePage extends StatelessWidget {
             ),
           ),
           NowTicker(
-            builder: (context, now) => _NowCard(items: buildDaySchedule(todayEntries), now: now),
+            builder: (context, now) {
+              final card = _NowCard(items: buildDaySchedule(todayEntries), now: now);
+              return card.isEmpty(now) ? const SizedBox.shrink() : Padding(padding: const EdgeInsets.only(bottom: 16), child: card);
+            },
           ),
-          const SizedBox(height: 16),
           StatRow(children: [
             StatCard(
               icon: FIcons.chartColumn,
@@ -263,6 +265,8 @@ class _NowCard extends StatelessWidget {
   final DateTime now;
   const _NowCard({required this.items, required this.now});
 
+  bool isEmpty(DateTime now) => currentItem(items, now) is! LessonItem && !items.whereType<LessonItem>().any((l) => l.start.isAfter(now));
+
   @override
   Widget build(BuildContext context) {
     final colors = context.theme.colors;
@@ -270,7 +274,6 @@ class _NowCard extends StatelessWidget {
 
     final current = currentItem(items, now);
     final upcoming = items.whereType<LessonItem>().where((l) => l.start.isAfter(now)).toList();
-    final lessons = items.whereType<LessonItem>().toList();
 
     LessonItem? lesson;
     String label;
@@ -296,20 +299,8 @@ class _NowCard extends StatelessWidget {
       accent = style.accent;
       icon = style.icon;
       trailing = mins < 1 ? 'starting' : (mins < 60 ? 'in $mins min' : 'at ${formatHm(lesson.start)}');
-    } else if (lessons.isNotEmpty) {
-      return _Banner(
-        icon: FIcons.partyPopper,
-        accent: Accent.green,
-        title: 'School is over for today',
-        subtitle: 'Last lesson ended at ${formatHm(lessons.last.end)}.',
-      );
     } else {
-      return _Banner(
-        icon: today.weekday > 5 ? FIcons.sun : FIcons.coffee,
-        accent: Accent.amber,
-        title: today.weekday > 5 ? 'Weekend!' : 'No lessons today',
-        subtitle: 'Nothing on the schedule. Enjoy the day.',
-      );
+      return const SizedBox.shrink();
     }
 
     final description = lesson.entry.description;
@@ -371,37 +362,6 @@ class _HeroCard extends StatelessWidget {
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(color: colors.primary, borderRadius: context.theme.style.borderRadius),
       child: child,
-    );
-  }
-}
-
-class _Banner extends StatelessWidget {
-  final IconData icon;
-  final Accent accent;
-  final String title;
-  final String subtitle;
-  const _Banner({required this.icon, required this.accent, required this.title, required this.subtitle});
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = context.theme.colors;
-    final typography = context.theme.typography;
-    return _HeroCard(
-      child: Row(
-        children: [
-          Icon(icon, size: 28, color: colors.primaryForeground),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(title, style: typography.lg.copyWith(color: colors.primaryForeground, fontWeight: FontWeight.w700)),
-                Text(subtitle, style: typography.sm.copyWith(color: colors.primaryForeground.withValues(alpha: 0.7))),
-              ],
-            ),
-          ),
-        ],
-      ),
     );
   }
 }
