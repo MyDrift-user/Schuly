@@ -133,7 +133,7 @@ class HomePage extends StatelessWidget {
                       onAction: () => TabRequests.request(DashboardTab.timetable),
                     ),
                     for (var i = 0; i < items.length; i++)
-                      TimelineRow(item: items[i], now: now, isLast: i == items.length - 1),
+                      TimelineRow(item: items[i], now: now, isFirst: i == 0, isLast: i == items.length - 1),
                   ],
                 );
               },

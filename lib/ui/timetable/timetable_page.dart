@@ -160,7 +160,7 @@ class _TimetablePageState extends State<TimetablePage> {
                         padding: const EdgeInsets.fromLTRB(8, 4, 16, 24),
                         children: [
                           for (var i = 0; i < items.length; i++)
-                            TimelineRow(item: items[i], now: now, isLast: i == items.length - 1),
+                            TimelineRow(item: items[i], now: now, isFirst: i == 0, isLast: i == items.length - 1),
                         ],
                       );
                     },
