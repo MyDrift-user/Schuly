@@ -133,8 +133,9 @@ class _GradesPageState extends State<GradesPage> {
           Padding(
             padding: const EdgeInsets.fromLTRB(20, 0, 16, 4),
             child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                Expanded(child: Text('Grades', style: typography.xl2.copyWith(fontWeight: FontWeight.w800))),
+                Expanded(child: Text('Grades', style: typography.xl2.copyWith(fontWeight: FontWeight.w800, height: 1))),
                 if (periods.length > 1)
                   SizedBox(
                     width: 140,
