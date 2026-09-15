@@ -243,7 +243,9 @@ void main() {
 
     test('never ends on a break', () {
       final items = upcomingItems(day(), DateTime(2026, 1, 5, 11, 40), maxLessons: 1);
-      expect(items.single, isA<LessonItem>());
+      expect(items.length, 2);
+      expect(items.last, isA<LessonItem>());
+      expect(upcomingItems(day(), DateTime(2026, 1, 5, 8, 47), maxLessons: 0), isEmpty);
     });
   });
 }
