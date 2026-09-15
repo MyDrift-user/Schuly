@@ -41,7 +41,7 @@ class HomePage extends StatelessWidget {
         .where((a) =>
             a.entryType == AgendaEntryType.test &&
             !dayOf(a.date).isBefore(today) &&
-            dayOf(a.date).difference(today).inDays <= 21)
+            daysBetween(today, a.date) <= 21)
         .toList()
       ..sort((a, b) => a.date.compareTo(b.date));
 
@@ -243,7 +243,7 @@ class HomePage extends StatelessWidget {
   }
 
   static String _daysUntil(DateTime d) {
-    final days = dayOf(d).difference(today).inDays;
+    final days = daysBetween(today, d);
     if (days <= 0) return 'Now';
     return '${days}d';
   }

@@ -27,9 +27,9 @@ class _DayStripState extends State<DayStrip> {
   final _controller = ScrollController();
   double _viewport = 0;
 
-  int get _count => dayOf(widget.end).difference(dayOf(widget.start)).inDays + 1;
+  int get _count => daysBetween(widget.start, widget.end) + 1;
 
-  int _indexOf(DateTime d) => dayOf(d).difference(dayOf(widget.start)).inDays;
+  int _indexOf(DateTime d) => daysBetween(widget.start, d);
 
   @override
   void initState() {
@@ -79,7 +79,7 @@ class _DayStripState extends State<DayStrip> {
             itemExtent: _extent,
             itemCount: _count,
             itemBuilder: (context, i) {
-              final day = dayOf(widget.start).add(Duration(days: i));
+              final day = addDays(widget.start, i);
               final selected = isSameDay(day, widget.selected);
               final isToday = isSameDay(day, today);
               final weekend = day.weekday > 5;

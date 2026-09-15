@@ -23,7 +23,7 @@ class AbsencesPage extends StatelessWidget {
     final absences = svc.absences.toList()..sort((a, b) => b.from.compareTo(a.from));
     final delays = absences.where((a) => a.type == AbsenceType.delay).length;
     final days = absences.where((a) => a.type != AbsenceType.delay).fold<int>(
-        0, (n, a) => n + dayOf(a.until).difference(dayOf(a.from)).inDays + 1);
+        0, (n, a) => n + daysBetween(a.from, a.until) + 1);
 
     final byMonth = <DateTime, List<AbsenceDto>>{};
     for (final a in absences) {

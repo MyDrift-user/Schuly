@@ -10,6 +10,18 @@ DateTime get today => dayOf(DateTime.now());
 
 bool isSameDay(DateTime a, DateTime b) => dayOf(a) == dayOf(b);
 
+/// Whole days from [from] to [to], unaffected by daylight-saving shifts.
+int daysBetween(DateTime from, DateTime to) {
+  final a = from.toLocal(), b = to.toLocal();
+  return DateTime.utc(b.year, b.month, b.day).difference(DateTime.utc(a.year, a.month, a.day)).inDays;
+}
+
+/// [days] after [d], at midnight local time.
+DateTime addDays(DateTime d, int days) {
+  final l = d.toLocal();
+  return DateTime(l.year, l.month, l.day + days);
+}
+
 DateTime fromApiDate(Date d) => DateTime(d.year, d.month, d.day);
 
 /// "15.09.2026"
@@ -29,7 +41,7 @@ String formatTime(DateTime d) => DateFormat('HH:mm').format(d.toLocal());
 
 /// "Today", "Tomorrow", "Yesterday", or the short day label.
 String relativeDay(DateTime d) {
-  final diff = dayOf(d).difference(today).inDays;
+  final diff = daysBetween(today, d);
   return switch (diff) {
     0 => 'Today',
     1 => 'Tomorrow',
@@ -40,7 +52,7 @@ String relativeDay(DateTime d) {
 
 /// "now", "tomorrow", "in 3 days", "in 2 weeks"
 String countdown(DateTime d) {
-  final days = dayOf(d).difference(today).inDays;
+  final days = daysBetween(today, d);
   if (days <= 0) return 'now';
   if (days == 1) return 'tomorrow';
   if (days < 14) return 'in $days days';

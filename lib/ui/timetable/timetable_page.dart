@@ -8,9 +8,10 @@ import '../core/dates.dart';
 import '../core/ui/accents.dart';
 import '../core/ui/empty_state.dart';
 import '../core/ui/now_ticker.dart';
-import 'day_schedule.dart' show formatHm;
+import 'day_schedule.dart';
 import 'day_strip.dart';
-import 'day_grid.dart';
+import 'break_card.dart';
+import 'lesson_tile.dart';
 
 class TimetablePage extends StatefulWidget {
   const TimetablePage({super.key});
@@ -153,12 +154,25 @@ class _TimetablePageState extends State<TimetablePage> {
                     ],
                   )
                 : NowTicker(
-                    interval: const Duration(seconds: 20),
-                    builder: (context, now) => ListView(
-                      physics: const AlwaysScrollableScrollPhysics(),
-                      padding: const EdgeInsets.fromLTRB(12, 8, 16, 32),
-                      children: [DayGrid(entries: scheduled, now: now)],
-                    ),
+                    builder: (context, now) {
+                      final items = buildDaySchedule(scheduled);
+                      return ListView(
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        padding: const EdgeInsets.fromLTRB(16, 4, 16, 32),
+                        children: [
+                          FTileGroup(
+                            divider: FItemDivider.full,
+                            children: [
+                              for (final item in items)
+                                switch (item) {
+                                  LessonItem lesson => LessonTile(item: lesson, now: now),
+                                  BreakItem brk => BreakCard(item: brk, now: now),
+                                },
+                            ],
+                          ),
+                        ],
+                      );
+                    },
                   ),
           ),
         ),
