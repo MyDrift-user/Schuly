@@ -41,7 +41,6 @@ class _GradesPageState extends State<GradesPage> {
 
   @override
   Widget build(BuildContext context) {
-    final colors = context.theme.colors;
     final typography = context.theme.typography;
     final svc = SchoolDataService.instance;
     final myGrades = svc.myGradesByExam;
