@@ -9,12 +9,16 @@ import 'entry_style.dart';
 import 'lesson_tile.dart';
 
 class TimelineRow extends StatelessWidget {
-  const TimelineRow({super.key, required this.item, required this.now, this.isFirst = false, required this.isLast});
+  const TimelineRow({super.key, required this.item, required this.now, this.isFirst = false, required this.isLast, this.dimPast = false});
 
   final DayItem item;
   final DateTime now;
   final bool isFirst;
   final bool isLast;
+
+  /// Fade items that are already over. Only meaningful while the day is
+  /// still running; a finished or past day reads better at full strength.
+  final bool dimPast;
 
   @override
   Widget build(BuildContext context) {
@@ -23,7 +27,7 @@ class TimelineRow extends StatelessWidget {
     final dayItem = item;
     final showEndTime = dayItem is! LessonItem || dayItem.hasEndTime;
     final current = item.isCurrentAt(now);
-    final past = !now.isBefore(item.end);
+    final past = dimPast && !now.isBefore(item.end);
     final Color accent;
     if (dayItem is LessonItem) {
       final style = entryStyle(context, dayItem.entry.entryType);
