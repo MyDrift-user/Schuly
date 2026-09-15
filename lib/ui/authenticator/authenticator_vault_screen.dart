@@ -8,6 +8,8 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../services/private_account_store.dart';
 import '../../services/totp_service.dart';
 import '../../services/totp_vault.dart';
+import '../core/ui/empty_state.dart';
+import '../core/ui/status_view.dart';
 import 'add_totp_screen.dart';
 
 class _Row {
@@ -117,49 +119,46 @@ class _AuthenticatorVaultScreenState extends State<AuthenticatorVaultScreen> {
         prefixes: [FHeaderAction.back(onPress: () => Navigator.of(context).pop())],
         suffixes: [FHeaderAction(icon: const Icon(FIcons.plus), onPress: _add)],
       ),
+      childPad: false,
       child: _loading
-          ? const Center(child: CircularProgressIndicator())
+          ? const LoadingView()
           : _rows.isEmpty
               ? _empty(context)
               : ListView.separated(
-                  padding: EdgeInsets.only(bottom: MediaQuery.viewPaddingOf(context).bottom),
-                  itemCount: _rows.length,
+                  padding: EdgeInsets.fromLTRB(16, 12, 16, 24 + MediaQuery.viewPaddingOf(context).bottom),
+                  itemCount: _rows.length + 1,
                   separatorBuilder: (_, _) => const SizedBox(height: 12),
-                  itemBuilder: (_, i) => _CodeCard(
-                    row: _rows[i],
-                    onCopy: _copy,
-                    onDelete: () => _confirmDelete(_rows[i]),
-                  ),
+                  itemBuilder: (context, i) {
+                    if (i == _rows.length) {
+                      return Padding(
+                        padding: const EdgeInsets.only(top: 4),
+                        child: Text('Tap a code to copy it. Long-press to remove an authenticator.',
+                            textAlign: TextAlign.center,
+                            style: context.theme.typography.xs.copyWith(color: context.theme.colors.mutedForeground)),
+                      );
+                    }
+                    return _CodeCard(
+                      row: _rows[i],
+                      onCopy: _copy,
+                      onDelete: () => _confirmDelete(_rows[i]),
+                    );
+                  },
                 ),
     );
   }
 
-  Widget _empty(BuildContext context) {
-    final colors = context.theme.colors;
-    final typography = context.theme.typography;
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
+  Widget _empty(BuildContext context) => EmptyState(
+        icon: FIcons.keyRound,
+        title: 'No authenticators yet',
+        message: 'Add a 2FA account to generate its codes here. Scan the QR code shown '
+            'when you set up two-factor authentication, or enter the setup key.',
+        action: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(FIcons.keyRound, size: 48, color: colors.mutedForeground),
-            const SizedBox(height: 16),
-            Text(
-              'No authenticators yet',
-              style: typography.lg.copyWith(fontWeight: FontWeight.w600),
-            ),
+            FButton(mainAxisSize: MainAxisSize.min, prefix: const Icon(FIcons.plus), onPress: _add, child: const Text('Add authenticator')),
             const SizedBox(height: 8),
-            Text(
-              'Add a 2FA account to generate its codes here. Scan the QR code shown '
-              'when you set up two-factor authentication, or enter the setup key.',
-              textAlign: TextAlign.center,
-              style: typography.sm.copyWith(color: colors.mutedForeground),
-            ),
-            const SizedBox(height: 24),
-            FButton(prefix: const Icon(FIcons.plus), onPress: _add, child: const Text('Add authenticator')),
-            const SizedBox(height: 12),
             FButton(
+              mainAxisSize: MainAxisSize.min,
               style: FButtonStyle.ghost(),
               prefix: const Icon(FIcons.bookOpen),
               onPress: _openGuide,
@@ -167,9 +166,7 @@ class _AuthenticatorVaultScreenState extends State<AuthenticatorVaultScreen> {
             ),
           ],
         ),
-      ),
-    );
-  }
+      );
 }
 
 class _CodeCard extends StatelessWidget {
@@ -198,13 +195,15 @@ class _CodeCard extends StatelessWidget {
       onLongPress: row.id == null ? null : onDelete,
       child: FCard(
         child: Padding(
-          padding: const EdgeInsets.all(12),
+          padding: const EdgeInsets.all(14),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
+                  Icon(row.id == null ? FIcons.school : FIcons.keyRound, size: 22, color: colors.mutedForeground),
+                  const SizedBox(width: 12),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -226,30 +225,44 @@ class _CodeCard extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(width: 12),
-                  Text(
-                    '${code?.secondsRemaining ?? 0}s',
-                    style: typography.sm.copyWith(color: accent, fontFeatures: const [FontFeature.tabularFigures()]),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: accent.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                    child: Text(
+                      '${code?.secondsRemaining ?? 0}s',
+                      style: typography.xs.copyWith(
+                          color: accent, fontWeight: FontWeight.w700, fontFeatures: const [FontFeature.tabularFigures()]),
+                    ),
                   ),
                 ],
               ),
-              const SizedBox(height: 8),
-              Text(
-                code == null ? '------' : _format(code.code),
-                style: typography.xl3.copyWith(
-                  color: accent,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 4,
-                  fontFeatures: const [FontFeature.tabularFigures()],
-                ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      code == null ? '------' : _format(code.code),
+                      style: typography.xl3.copyWith(
+                        color: accent,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 4,
+                        fontFeatures: const [FontFeature.tabularFigures()],
+                      ),
+                    ),
+                  ),
+                  Icon(FIcons.copy, size: 18, color: colors.mutedForeground),
+                ],
               ),
-              const SizedBox(height: 8),
-              ClipRRect(
-                borderRadius: BorderRadius.circular(4),
-                child: LinearProgressIndicator(
-                  value: fraction,
-                  minHeight: 4,
-                  backgroundColor: colors.muted,
-                  valueColor: AlwaysStoppedAnimation(accent),
+              const SizedBox(height: 10),
+              FDeterminateProgress(
+                value: fraction,
+                style: (s) => s.copyWith(
+                  constraints: const BoxConstraints.tightFor(height: 4),
+                  trackDecoration: BoxDecoration(color: colors.muted, borderRadius: BorderRadius.circular(4)),
+                  fillDecoration: BoxDecoration(color: accent, borderRadius: BorderRadius.circular(4)),
                 ),
               ),
             ],

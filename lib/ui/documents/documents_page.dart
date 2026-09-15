@@ -12,6 +12,7 @@ import '../../services/active_account_service.dart';
 import '../../services/api_client.dart';
 import '../../services/api_error.dart';
 import '../../services/school_data_service.dart';
+import '../core/ui/empty_state.dart';
 
 class DocumentsScreen extends StatefulWidget {
   const DocumentsScreen({super.key});
@@ -105,37 +106,41 @@ class _DocumentsScreenState extends State<DocumentsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final colors = context.theme.colors;
     final folders = _folders;
+    final total = SchoolDataService.instance.documents.length;
 
     return FScaffold(
       header: FHeader.nested(
         title: const Text('Documents'),
         prefixes: [FHeaderAction.back(onPress: () => Navigator.of(context).pop())],
       ),
+      childPad: false,
       child: RefreshIndicator(
         onRefresh: _refresh,
         child: ListView(
           physics: const AlwaysScrollableScrollPhysics(),
-          padding: EdgeInsets.fromLTRB(16, 8, 16, 32 + MediaQuery.viewPaddingOf(context).bottom),
+          padding: EdgeInsets.fromLTRB(16, 12, 16, 32 + MediaQuery.viewPaddingOf(context).bottom),
           children: [
             if (folders.isEmpty)
-              Padding(
-                padding: const EdgeInsets.only(top: 48),
-                child: Center(
-                  child: Text('No documents yet - pull down to refresh.',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(color: colors.mutedForeground)),
-                ),
+              const EmptyState(
+                icon: FIcons.folderOpen,
+                title: 'No documents yet',
+                message: 'Report cards and letters from your school show up here. Pull down to refresh.',
               )
-            else
+            else ...[
+              Padding(
+                padding: const EdgeInsets.fromLTRB(4, 0, 4, 12),
+                child: Text('$total ${total == 1 ? 'document' : 'documents'} in ${folders.length} ${folders.length == 1 ? 'folder' : 'folders'}',
+                    style: context.theme.typography.sm.copyWith(color: context.theme.colors.mutedForeground)),
+              ),
               for (final folder in folders)
-                _FolderTile(
+                _FolderSection(
                   name: folder.key,
                   files: folder.value,
                   downloadingId: _downloadingId,
                   onOpen: _openDocument,
                 ),
+            ],
           ],
         ),
       ),
@@ -143,12 +148,12 @@ class _DocumentsScreenState extends State<DocumentsScreen> {
   }
 }
 
-class _FolderTile extends StatefulWidget {
+class _FolderSection extends StatefulWidget {
   final String name;
   final List<StudentDocumentDto> files;
   final String? downloadingId;
   final Future<void> Function(StudentDocumentDto) onOpen;
-  const _FolderTile({
+  const _FolderSection({
     required this.name,
     required this.files,
     required this.downloadingId,
@@ -156,10 +161,10 @@ class _FolderTile extends StatefulWidget {
   });
 
   @override
-  State<_FolderTile> createState() => _FolderTileState();
+  State<_FolderSection> createState() => _FolderSectionState();
 }
 
-class _FolderTileState extends State<_FolderTile> {
+class _FolderSectionState extends State<_FolderSection> {
   late bool _open = widget.name == 'Report cards';
 
   static String _fmtSize(int bytes) {
@@ -171,43 +176,35 @@ class _FolderTileState extends State<_FolderTile> {
   @override
   Widget build(BuildContext context) {
     final colors = context.theme.colors;
+    final isReports = widget.name == 'Report cards';
     return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
+      padding: const EdgeInsets.only(bottom: 12),
+      child: FTileGroup(
+        divider: FItemDivider.full,
         children: [
           FTile(
-            prefix: Icon(_open ? FIcons.folderOpen : FIcons.folder),
+            prefix: Icon(isReports ? FIcons.award : (_open ? FIcons.folderOpen : FIcons.folder)),
             title: Text(widget.name),
-            details: Text('${widget.files.length}'),
-            suffix: Icon(_open ? FIcons.chevronDown : FIcons.chevronRight),
+            subtitle: Text('${widget.files.length} ${widget.files.length == 1 ? 'file' : 'files'}'),
+            suffix: AnimatedRotation(
+              turns: _open ? 0.5 : 0,
+              duration: const Duration(milliseconds: 200),
+              child: Icon(FIcons.chevronDown, color: colors.mutedForeground),
+            ),
             onPress: () => setState(() => _open = !_open),
           ),
           if (_open)
-            Padding(
-              padding: const EdgeInsets.only(left: 16, top: 8),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  for (final doc in widget.files)
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 8),
-                      child: FTile(
-                        prefix: widget.downloadingId == doc.id
-                            ? const FCircularProgress()
-                            : const Icon(FIcons.fileText),
-                        title: Text(doc.title.isNotEmpty ? doc.title : (doc.fileName ?? 'Document')),
-                        subtitle: Text([
-                          if (doc.enteredBy?.isNotEmpty ?? false) doc.enteredBy,
-                          if (doc.fileSizeBytes != null) _fmtSize(doc.fileSizeBytes!),
-                        ].whereType<String>().where((s) => s.isNotEmpty).join(' · ')),
-                        suffix: Icon(FIcons.download, color: colors.mutedForeground),
-                        onPress: widget.downloadingId == null ? () => widget.onOpen(doc) : null,
-                      ),
-                    ),
-                ],
+            for (final doc in widget.files)
+              FTile(
+                prefix: widget.downloadingId == doc.id ? const FCircularProgress() : const Icon(FIcons.fileText),
+                title: Text(doc.title.isNotEmpty ? doc.title : (doc.fileName ?? 'Document')),
+                subtitle: Text([
+                  if (doc.enteredBy?.isNotEmpty ?? false) doc.enteredBy,
+                  if (doc.fileSizeBytes != null) _fmtSize(doc.fileSizeBytes!),
+                ].whereType<String>().where((s) => s.isNotEmpty).join(' · ')),
+                suffix: Icon(FIcons.download, color: colors.mutedForeground),
+                onPress: widget.downloadingId == null ? () => widget.onOpen(doc) : null,
               ),
-            ),
         ],
       ),
     );

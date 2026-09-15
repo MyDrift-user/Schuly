@@ -8,6 +8,8 @@ import '../../../services/school_data_service.dart';
 import '../../../services/toast_service.dart';
 import '../../authenticator/authenticator_vault_screen.dart';
 import '../../settings/settings_screen.dart';
+import '../../core/ui/empty_state.dart';
+import '../../core/ui/section_header.dart';
 import 'add_school_modal.dart';
 
 class AccountsSidebar extends StatelessWidget {
@@ -84,117 +86,109 @@ class AccountsSidebar extends StatelessWidget {
 
           final viewPadding = MediaQuery.viewPaddingOf(context);
           return Padding(
-            padding: EdgeInsets.only(
-              top: viewPadding.top,
-              bottom: viewPadding.bottom,
-            ),
+            padding: EdgeInsets.only(top: viewPadding.top, bottom: viewPadding.bottom),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                _IdentityHeader(
-                  name: userName,
-                  email: userEmail,
-                  pictureUrl: pictureUrl,
+                _IdentityHeader(name: userName, email: userEmail, pictureUrl: pictureUrl),
+                FDivider(style: (s) => s.copyWith(padding: EdgeInsets.zero)),
+                Expanded(
+                  child: ListView(
+                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+                    children: [
+                      if (isPrivate)
+                        const EmptyState(
+                          compact: true,
+                          icon: FIcons.shieldCheck,
+                          title: 'Private mode',
+                          message: 'Your data stays on this device.',
+                        )
+                      else ...[
+                        const SectionHeader(icon: FIcons.school, title: 'Schools'),
+                        if (svc.schools.isEmpty)
+                          const EmptyState(
+                            compact: true,
+                            icon: FIcons.school,
+                            title: 'No school connected',
+                            message: 'Add a school account to see your data.',
+                          )
+                        else
+                          FTileGroup(
+                            divider: FItemDivider.full,
+                            children: [
+                              for (final s in svc.schools)
+                                FTile(
+                                  prefix: _SchoolAvatar(logoUrl: s.logoUrl),
+                                  title: Text(s.name),
+                                  subtitle: (s.fullName?.isNotEmpty ?? false)
+                                      ? Text(s.fullName!)
+                                      : (s.email?.isNotEmpty ?? false)
+                                          ? Text(s.email!)
+                                          : null,
+                                  suffix: s.id == active?.id ? Icon(FIcons.circleCheck, color: colors.primary) : null,
+                                  selected: s.id == active?.id,
+                                  onPress: () async {
+                                    await svc.setActive(s.id);
+                                    if (context.mounted) Navigator.of(context).maybePop();
+                                  },
+                                  onLongPress: () => _confirmRemove(context, s),
+                                ),
+                            ],
+                          ),
+                        const SizedBox(height: 10),
+                        FButton(
+                          style: FButtonStyle.outline(),
+                          prefix: const Icon(FIcons.plus),
+                          onPress: () => _add(context),
+                          child: const Text('Add school account'),
+                        ),
+                        if (svc.schools.isNotEmpty)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 8),
+                            child: Text('Long-press a school to disconnect it.',
+                                textAlign: TextAlign.center,
+                                style: typography.xs.copyWith(color: colors.mutedForeground)),
+                          ),
+                      ],
+                    ],
+                  ),
                 ),
                 FDivider(style: (s) => s.copyWith(padding: EdgeInsets.zero)),
-                if (!isPrivate)
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 12, 20, 6),
-                    child: Text(
-                      'Schools'.toUpperCase(),
-                      style: typography.xs.copyWith(
-                        color: colors.mutedForeground,
-                        fontWeight: FontWeight.w600,
-                        letterSpacing: 0.5,
-                      ),
-                    ),
-                  ),
-                Expanded(
-                  child: isPrivate
-                      ? Center(
-                          child: Padding(
-                            padding: const EdgeInsets.all(24),
-                            child: Text(
-                              'Private mode - your data stays on this device.',
-                              textAlign: TextAlign.center,
-                              style: typography.sm
-                                  .copyWith(color: colors.mutedForeground),
-                            ),
-                          ),
-                        )
-                      : ListView(
-                          padding: const EdgeInsets.symmetric(horizontal: 12),
-                          children: [
-                            for (final s in svc.schools)
-                              FTile(
-                                prefix: _SchoolAvatar(logoUrl: s.logoUrl),
-                                title: Text(s.name),
-                                subtitle: (s.fullName?.isNotEmpty ?? false)
-                                    ? Text(s.fullName!)
-                                    : (s.email?.isNotEmpty ?? false)
-                                        ? Text(s.email!)
-                                        : null,
-                                suffix: s.id == active?.id
-                                    ? Icon(FIcons.check, color: colors.primary)
-                                    : null,
-                                onPress: () async {
-                                  await svc.setActive(s.id);
-                                  if (context.mounted) {
-                                    Navigator.of(context).maybePop();
-                                  }
-                                },
-                                onLongPress: () => _confirmRemove(context, s),
-                              ),
-                          ],
-                        ),
-                ),
                 Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 12),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+                  child: FTileGroup(
+                    divider: FItemDivider.full,
                     children: [
-                      if (!isPrivate) ...[
-                        FTile(
-                          prefix: const Icon(FIcons.plus),
-                          title: const Text('Add school account'),
-                          onPress: () => _add(context),
-                        ),
-                        const SizedBox(height: 4),
-                      ],
                       FTile(
                         prefix: const Icon(FIcons.keyRound),
                         title: const Text('Authenticator'),
+                        suffix: const Icon(FIcons.chevronRight),
                         onPress: () {
                           Navigator.of(context).maybePop();
-                          parentNavigator.push(MaterialPageRoute(
-                              builder: (_) => const AuthenticatorVaultScreen()));
+                          parentNavigator.push(MaterialPageRoute(builder: (_) => const AuthenticatorVaultScreen()));
                         },
                       ),
-                      const SizedBox(height: 4),
                       FTile(
                         prefix: const Icon(FIcons.settings),
                         title: const Text('Settings'),
+                        suffix: const Icon(FIcons.chevronRight),
                         onPress: () {
                           Navigator.of(context).maybePop();
-                          parentNavigator.push(MaterialPageRoute(
-                              builder: (_) => const SettingsScreen()));
+                          parentNavigator.push(MaterialPageRoute(builder: (_) => const SettingsScreen()));
                         },
                       ),
-                      if (onSignOut != null) ...[
-                        const SizedBox(height: 4),
+                      if (onSignOut != null)
                         FTile(
                           prefix: const Icon(FIcons.logOut),
-                          title: const Text('Sign out'),
+                          title: Text(isPrivate ? 'Disconnect school' : 'Sign out'),
                           onPress: () {
                             Navigator.of(context).maybePop();
                             onSignOut!();
                           },
                         ),
-                      ],
                     ],
                   ),
                 ),
-                const SizedBox(height: 8),
               ],
             ),
           );
@@ -213,7 +207,7 @@ class _SchoolAvatar extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = context.theme.colors;
     final fallback =
-        Icon(Icons.school, size: 22, color: colors.mutedForeground);
+        Icon(FIcons.school, size: 20, color: colors.mutedForeground);
     return Container(
       width: size,
       height: size,
@@ -248,12 +242,16 @@ class _IdentityHeader extends StatelessWidget {
     );
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
+      padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
       child: Row(
         children: [
-          (pictureUrl == null || pictureUrl!.isEmpty)
-              ? FAvatar.raw(size: 48, child: fallback)
-              : FAvatar(size: 48, image: NetworkImage(pictureUrl!), fallback: fallback),
+          Container(
+            padding: const EdgeInsets.all(2),
+            decoration: BoxDecoration(shape: BoxShape.circle, border: Border.all(color: colors.border)),
+            child: (pictureUrl == null || pictureUrl!.isEmpty)
+                ? FAvatar.raw(size: 48, child: fallback)
+                : FAvatar(size: 48, image: NetworkImage(pictureUrl!), fallback: fallback),
+          ),
           const SizedBox(width: 12),
           Expanded(
             child: Column(

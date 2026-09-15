@@ -3,10 +3,18 @@ import 'package:forui/forui.dart';
 import 'package:schuly_api/schuly_api.dart';
 
 import '../../services/school_data_service.dart';
+import '../core/dates.dart';
 import '../core/grade_color.dart';
+import '../core/ui/accents.dart';
+import '../core/ui/empty_state.dart';
+import '../core/ui/chips.dart';
 import '../core/ui/now_ticker.dart';
+import '../core/ui/section_header.dart';
+import '../core/ui/stat_card.dart';
+import '../dashboard/tab_requests.dart';
 import '../timetable/break_card.dart';
 import '../timetable/day_schedule.dart';
+import '../timetable/entry_style.dart';
 import '../timetable/lesson_tile.dart';
 
 class HomePage extends StatelessWidget {
@@ -14,180 +22,392 @@ class HomePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.theme.colors;
+    final typography = context.theme.typography;
     final svc = SchoolDataService.instance;
-    final now = DateTime.now();
-    final today = DateTime(now.year, now.month, now.day);
-
-    bool sameDay(DateTime d) {
-      final local = d.toLocal();
-      return local.year == today.year && local.month == today.month && local.day == today.day;
-    }
-
-    DateTime dayOf(DateTime d) {
-      final local = d.toLocal();
-      return DateTime(local.year, local.month, local.day);
-    }
 
     bool isHoliday(AgendaEntryDto a) => a.entryType == AgendaEntryType.holiday;
 
-    final todayEntries = svc.agenda.where((a) => !isHoliday(a) && sameDay(a.date)).toList()
+    final todayEntries = svc.agenda.where((a) => !isHoliday(a) && isSameDay(a.date, today)).toList()
       ..sort((a, b) => a.date.toLocal().compareTo(b.date.toLocal()));
 
     final holidays = svc.agenda
         .where((a) => isHoliday(a) && !dayOf(a.endDate ?? a.date).isBefore(today))
         .toList()
       ..sort((a, b) => a.date.toLocal().compareTo(b.date.toLocal()));
+    final nextHoliday = holidays.isEmpty ? null : holidays.first;
+
+    final upcomingTests = svc.agenda
+        .where((a) =>
+            a.entryType == AgendaEntryType.test &&
+            !dayOf(a.date).isBefore(today) &&
+            dayOf(a.date).difference(today).inDays <= 21)
+        .toList()
+      ..sort((a, b) => a.date.compareTo(b.date));
 
     final myGrades = svc.myGradesByExam;
     final examById = {for (final e in svc.exams) e.id: e};
-    final examName = {for (final e in svc.exams) e.id: e.name};
     final classNameById = <String?, String?>{
       for (final c in (svc.me?.classes ?? const <UserClassDto>[])) c.classId: c.className,
       ...svc.classNameById,
     };
-    final recentGrades = myGrades.entries
-        .where((e) => isGraded(e.value.score))
-        .toList()
+    final graded = myGrades.entries.where((e) => isGraded(e.value.score)).toList()
       ..sort((a, b) {
         final da = examById[a.key]?.date, db = examById[b.key]?.date;
         if (da == null) return db == null ? 0 : 1;
         if (db == null) return -1;
         return db.compareTo(da);
       });
-    final latestGrades = recentGrades.take(4).toList();
+    final latestGrades = graded.take(4).toList();
 
-    final recentAbsences = svc.absences.toList()
-      ..sort((a, b) => b.from.compareTo(a.from));
+    double ws = 0, ss = 0;
+    for (final e in graded) {
+      final w = (e.value.weighting ?? 1).toDouble();
+      ws += w;
+      ss += e.value.score!.toDouble() * w;
+    }
+    final average = ws > 0 ? ss / ws : null;
+
+    final recentAbsences = svc.absences.toList()..sort((a, b) => b.from.compareTo(a.from));
+    final firstName = svc.me?.firstName.trim();
 
     return RefreshIndicator(
       onRefresh: svc.refresh,
       child: ListView(
-      physics: const AlwaysScrollableScrollPhysics(),
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 24),
-      children: [
-        _Section(
-          title: 'Today',
-          emptyText: 'Nothing scheduled today',
-          tiles: [
-            if (todayEntries.isNotEmpty)
-              NowTicker(
-                builder: (context, now) {
-                  final items = buildDaySchedule(todayEntries);
-                  return Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      for (final item in items)
-                        Padding(
-                          padding: const EdgeInsets.only(bottom: 8),
-                          child: switch (item) {
-                            LessonItem lesson => LessonTile(item: lesson, now: now),
-                            BreakItem brk => BreakCard(item: brk, now: now),
-                          },
-                        ),
-                    ],
-                  );
-                },
-              ),
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(4, 0, 4, 16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  firstName == null || firstName.isEmpty ? greeting(DateTime.now()) : '${greeting(DateTime.now())}, $firstName',
+                  style: typography.xl2.copyWith(fontWeight: FontWeight.w800, height: 1.1),
+                ),
+                const SizedBox(height: 4),
+                Text(formatDayLong(today), style: typography.sm.copyWith(color: colors.mutedForeground)),
+              ],
+            ),
+          ),
+          NowTicker(
+            builder: (context, now) => _NowCard(items: buildDaySchedule(todayEntries), now: now),
+          ),
+          const SizedBox(height: 16),
+          StatRow(children: [
+            StatCard(
+              icon: FIcons.chartColumn,
+              accent: average == null ? Accent.neutral : gradeAccent(average),
+              value: average == null ? '-' : formatGrade(average),
+              label: 'Average',
+              onPress: () => TabRequests.request(DashboardTab.grades),
+            ),
+            StatCard(
+              icon: FIcons.calendarOff,
+              value: '${svc.absences.length}',
+              label: svc.absences.length == 1 ? 'Absence' : 'Absences',
+              onPress: () => TabRequests.request(DashboardTab.absences),
+            ),
+            StatCard(
+              icon: FIcons.treePalm,
+              value: nextHoliday == null ? '-' : _daysUntil(nextHoliday.date),
+              label: 'Holidays',
+              onPress: () => TabRequests.request(DashboardTab.timetable),
+            ),
+          ]),
+          const SizedBox(height: 24),
+          SectionHeader(
+            icon: FIcons.calendarDays,
+            title: 'Today',
+            actionLabel: 'Timetable',
+            onAction: () => TabRequests.request(DashboardTab.timetable),
+          ),
+          if (todayEntries.isEmpty)
+            EmptyState(
+              compact: true,
+              icon: today.weekday > 5 ? FIcons.sun : FIcons.calendarCheck,
+              title: 'Nothing scheduled today',
+              message: today.weekday > 5 ? 'Enjoy your weekend!' : 'A free day. Make the most of it.',
+            )
+          else
+            NowTicker(
+              builder: (context, now) {
+                final items = buildDaySchedule(todayEntries);
+                return FTileGroup(
+                  divider: FItemDivider.full,
+                  children: [
+                    for (final item in items)
+                      switch (item) {
+                        LessonItem lesson => LessonTile(item: lesson, now: now),
+                        BreakItem brk => BreakCard(item: brk, now: now),
+                      },
+                  ],
+                );
+              },
+            ),
+          if (upcomingTests.isNotEmpty) ...[
+            const SizedBox(height: 24),
+            const SectionHeader(icon: FIcons.clipboardList, title: 'Upcoming tests'),
+            FTileGroup(
+              divider: FItemDivider.full,
+              children: [
+                for (final a in upcomingTests.take(4))
+                  FTile(
+                    prefix: DateChip(a.date, accent: Accent.violet),
+                    title: Text(a.title.isNotEmpty ? a.title : 'Test'),
+                    subtitle: Text([formatTime(a.date), if (a.place?.isNotEmpty ?? false) a.place!].join(' · ')),
+                    details: _Countdown(a.date),
+                  ),
+              ],
+            ),
           ],
-        ),
-        const SizedBox(height: 16),
-        _Section(
-          title: 'Next holiday',
-          emptyText: 'No upcoming holidays',
-          tiles: [
-            if (holidays.isNotEmpty)
-              FTile(
-                prefix: const Icon(FIcons.treePalm),
-                title: Text(holidays.first.title.isNotEmpty ? holidays.first.title : 'Holiday'),
-                subtitle: Text(_holidayRange(holidays.first.date, holidays.first.endDate)),
-                details: Text(_countdown(today, holidays.first.date)),
-              ),
+          const SizedBox(height: 24),
+          SectionHeader(
+            icon: FIcons.chartColumn,
+            title: 'Latest grades',
+            actionLabel: 'All grades',
+            onAction: () => TabRequests.request(DashboardTab.grades),
+          ),
+          if (latestGrades.isEmpty)
+            const EmptyState(
+              compact: true,
+              icon: FIcons.sparkles,
+              title: 'No grades yet',
+              message: 'New grades show up here as soon as they are entered.',
+            )
+          else
+            FTileGroup(
+              divider: FItemDivider.full,
+              children: [
+                for (final entry in latestGrades)
+                  FTile(
+                    prefix: SubjectChip(classNameById[examById[entry.key]?.classId] ?? '?'),
+                    title: Text(examById[entry.key]?.name ?? 'Exam'),
+                    subtitle: Text([
+                      if (classNameById[examById[entry.key]?.classId]?.isNotEmpty ?? false)
+                        classNameById[examById[entry.key]?.classId]!,
+                      if (examById[entry.key]?.date != null) formatDate(fromApiDate(examById[entry.key]!.date!)),
+                    ].join(' · ')),
+                    suffix: GradePill(entry.value.score),
+                    onPress: () => TabRequests.request(DashboardTab.grades),
+                  ),
+              ],
+            ),
+          if (nextHoliday != null) ...[
+            const SizedBox(height: 24),
+            const SectionHeader(icon: FIcons.treePalm, title: 'Next holiday'),
+            FTileGroup(
+              divider: FItemDivider.full,
+              children: [
+                FTile(
+                  prefix: DateChip(nextHoliday.date, accent: Accent.orange),
+                  title: Text(nextHoliday.title.isNotEmpty ? nextHoliday.title : 'Holiday'),
+                  subtitle: Text(formatDayRange(nextHoliday.date, nextHoliday.endDate)),
+                  details: _Countdown(nextHoliday.date),
+                ),
+              ],
+            ),
           ],
-        ),
-        const SizedBox(height: 16),
-        _Section(
-          title: 'Latest grades',
-          emptyText: 'No grades yet',
-          tiles: [
-            for (final entry in latestGrades)
-              FTile(
-                title: Text(examName[entry.key] ?? 'Exam'),
-                subtitle: (classNameById[examById[entry.key]?.classId]?.isNotEmpty ?? false)
-                    ? Text(classNameById[examById[entry.key]?.classId]!)
-                    : null,
-                suffix: GradePill(entry.value.score),
-              ),
-          ],
-        ),
-        const SizedBox(height: 16),
-        _Section(
-          title: 'Recent absences',
-          emptyText: 'No absences',
-          tiles: [
-            for (final a in recentAbsences.take(4))
-              FTile(
-                prefix: const Icon(FIcons.calendarOff),
-                title: Text(a.reason.isNotEmpty == true ? a.reason : 'Absence'),
-                subtitle: Text(_rangeLabel(a.from, a.until)),
-              ),
-          ],
-        ),
-      ],
+          const SizedBox(height: 24),
+          SectionHeader(
+            icon: FIcons.calendarOff,
+            title: 'Recent absences',
+            actionLabel: 'All',
+            onAction: () => TabRequests.request(DashboardTab.absences),
+          ),
+          if (recentAbsences.isEmpty)
+            const EmptyState(
+              compact: true,
+              icon: FIcons.badgeCheck,
+              accent: Accent.green,
+              title: 'No absences',
+              message: 'Perfect attendance so far.',
+            )
+          else
+            FTileGroup(
+              divider: FItemDivider.full,
+              children: [
+                for (final a in recentAbsences.take(3))
+                  FTile(
+                    prefix: DateChip(a.from, accent: a.type == AbsenceType.delay ? Accent.amber : Accent.red),
+                    title: Text(a.reason.isNotEmpty ? a.reason : 'Absence'),
+                    subtitle: Text(formatDayRange(a.from, a.until)),
+                    onPress: () => TabRequests.request(DashboardTab.absences),
+                  ),
+              ],
+            ),
+        ],
       ),
     );
   }
 
-  static String _dateLabel(DateTime d) {
-    const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-    return '${days[d.weekday - 1]} ${d.day}.${d.month}.';
-  }
-
-  static String _countdown(DateTime today, DateTime from) {
-    final days = DateTime(from.year, from.month, from.day).difference(today).inDays;
-    if (days <= 0) return 'now';
-    if (days == 1) return 'tomorrow';
-    return 'in $days days';
-  }
-
-  static String _holidayRange(DateTime from, DateTime? end) {
-    String d(DateTime x) => '${x.day}.${x.month}.${x.year}';
-    if (end == null || end.difference(from).inDays.abs() < 1) return d(from);
-    return '${d(from)} – ${d(end)}';
-  }
-
-  static String _rangeLabel(DateTime from, DateTime? until) {
-    final f = _dateLabel(from);
-    if (until == null || until.difference(from).inDays.abs() < 1) return f;
-    return '$f – ${_dateLabel(until)}';
+  static String _daysUntil(DateTime d) {
+    final days = dayOf(d).difference(today).inDays;
+    if (days <= 0) return 'Now';
+    return '${days}d';
   }
 }
 
-class _Section extends StatelessWidget {
-  final String title;
-  final List<Widget> tiles;
-  final String emptyText;
-  const _Section({required this.title, required this.tiles, required this.emptyText});
+class _Countdown extends StatelessWidget {
+  final DateTime date;
+  const _Countdown(this.date);
 
   @override
   Widget build(BuildContext context) {
     final colors = context.theme.colors;
     final typography = context.theme.typography;
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(4, 0, 4, 8),
-          child: Text(title, style: typography.base.copyWith(fontWeight: FontWeight.w600)),
-        ),
-        if (tiles.isEmpty)
-          Padding(
-            padding: const EdgeInsets.only(left: 4, bottom: 4),
-            child: Text(emptyText, style: TextStyle(color: colors.mutedForeground)),
-          )
-        else
-          for (final t in tiles)
-            Padding(padding: const EdgeInsets.only(bottom: 8), child: t),
-      ],
+    return Text(countdown(date),
+        style: typography.sm.copyWith(color: colors.mutedForeground, fontWeight: FontWeight.w600));
+  }
+}
+
+/// The hero at the top of the home page: what is happening right now, or
+/// what comes next.
+class _NowCard extends StatelessWidget {
+  final List<DayItem> items;
+  final DateTime now;
+  const _NowCard({required this.items, required this.now});
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.theme.colors;
+    final typography = context.theme.typography;
+
+    final current = currentItem(items, now);
+    final upcoming = items.whereType<LessonItem>().where((l) => l.start.isAfter(now)).toList();
+    final lessons = items.whereType<LessonItem>().toList();
+
+    LessonItem? lesson;
+    String label;
+    Accent accent;
+    IconData icon;
+    double? progress;
+    String trailing;
+
+    if (current is LessonItem) {
+      lesson = current;
+      final style = entryStyle(context, current.entry.entryType);
+      label = 'Now';
+      accent = style.accent;
+      icon = style.icon;
+      final total = current.end.difference(current.start).inSeconds;
+      progress = total <= 0 ? null : (now.difference(current.start).inSeconds / total).clamp(0.0, 1.0);
+      trailing = '${current.remainingMinutesAt(now)} min left';
+    } else if (upcoming.isNotEmpty) {
+      lesson = upcoming.first;
+      final style = entryStyle(context, lesson.entry.entryType);
+      final mins = lesson.start.difference(now).inMinutes;
+      label = current is BreakItem ? (current.isLunch ? 'Lunch break · up next' : 'Break · up next') : 'Up next';
+      accent = style.accent;
+      icon = style.icon;
+      trailing = mins < 1 ? 'starting' : (mins < 60 ? 'in $mins min' : 'at ${formatHm(lesson.start)}');
+    } else if (lessons.isNotEmpty) {
+      return _Banner(
+        icon: FIcons.partyPopper,
+        accent: Accent.green,
+        title: 'School is over for today',
+        subtitle: 'Last lesson ended at ${formatHm(lessons.last.end)}.',
+      );
+    } else {
+      return _Banner(
+        icon: today.weekday > 5 ? FIcons.sun : FIcons.coffee,
+        accent: Accent.amber,
+        title: today.weekday > 5 ? 'Weekend!' : 'No lessons today',
+        subtitle: 'Nothing on the schedule. Enjoy the day.',
+      );
+    }
+
+    final description = lesson.entry.description;
+    final meta = [
+      '${formatHm(lesson.start)} - ${formatHm(lesson.end)}',
+      [lesson.entry.place, description == null ? null : stripShortCode(description)].where((s) => s != null && s.isNotEmpty).join(', '),
+    ].where((s) => s.isNotEmpty).join(' · ');
+    final title = lesson.entry.title.isNotEmpty ? lesson.entry.title : entryStyle(context, lesson.entry.entryType).label;
+    final barColor = lesson.entry.entryType == AgendaEntryType.lesson ? subjectAccent(title).color : accent.color;
+
+    return _HeroCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(icon, size: 16, color: colors.primaryForeground),
+              const SizedBox(width: 6),
+              Text(label.toUpperCase(),
+                  style: typography.xs.copyWith(
+                      color: colors.primaryForeground, fontWeight: FontWeight.w700, letterSpacing: 0.6)),
+              const Spacer(),
+              Text(trailing,
+                  style: typography.sm.copyWith(color: colors.primaryForeground, fontWeight: FontWeight.w700)),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Text(title,
+              style: typography.xl.copyWith(color: colors.primaryForeground, fontWeight: FontWeight.w800, height: 1.15)),
+          if (meta.isNotEmpty) ...[
+            const SizedBox(height: 4),
+            Text(meta, style: typography.sm.copyWith(color: colors.primaryForeground.withValues(alpha: 0.7))),
+          ],
+          if (progress != null) ...[
+            const SizedBox(height: 14),
+            FDeterminateProgress(
+              value: progress,
+              style: (s) => s.copyWith(
+                constraints: const BoxConstraints.tightFor(height: 6),
+                trackDecoration: BoxDecoration(color: colors.primaryForeground.withValues(alpha: 0.18), borderRadius: BorderRadius.circular(999)),
+                fillDecoration: BoxDecoration(color: barColor, borderRadius: BorderRadius.circular(999)),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _HeroCard extends StatelessWidget {
+  final Widget child;
+  const _HeroCard({required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.theme.colors;
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(color: colors.primary, borderRadius: context.theme.style.borderRadius),
+      child: child,
+    );
+  }
+}
+
+class _Banner extends StatelessWidget {
+  final IconData icon;
+  final Accent accent;
+  final String title;
+  final String subtitle;
+  const _Banner({required this.icon, required this.accent, required this.title, required this.subtitle});
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.theme.colors;
+    final typography = context.theme.typography;
+    return _HeroCard(
+      child: Row(
+        children: [
+          Icon(icon, size: 28, color: colors.primaryForeground),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title, style: typography.lg.copyWith(color: colors.primaryForeground, fontWeight: FontWeight.w700)),
+                Text(subtitle, style: typography.sm.copyWith(color: colors.primaryForeground.withValues(alpha: 0.7))),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

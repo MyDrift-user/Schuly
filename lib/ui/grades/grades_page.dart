@@ -3,23 +3,23 @@ import 'package:forui/forui.dart';
 import 'package:schuly_api/schuly_api.dart';
 
 import '../../services/school_data_service.dart';
+import '../core/dates.dart';
 import '../core/grade_color.dart';
+import '../core/ui/accents.dart';
+import '../core/ui/choice_chips.dart';
+import '../core/ui/empty_state.dart';
+import '../core/ui/chips.dart';
+import '../core/ui/section_header.dart';
+import '../core/ui/stat_card.dart';
 
-class GradesPage extends StatelessWidget {
+class GradesPage extends StatefulWidget {
   const GradesPage({super.key});
 
   @override
-  Widget build(BuildContext context) => const _GradesView();
+  State<GradesPage> createState() => _GradesPageState();
 }
 
-class _GradesView extends StatefulWidget {
-  const _GradesView();
-
-  @override
-  State<_GradesView> createState() => _GradesViewState();
-}
-
-class _GradesViewState extends State<_GradesView> {
+class _GradesPageState extends State<GradesPage> {
   int? _selectedKey;
 
   static int _semesterKey(Date? d) {
@@ -41,6 +41,8 @@ class _GradesViewState extends State<_GradesView> {
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.theme.colors;
+    final typography = context.theme.typography;
     final svc = SchoolDataService.instance;
     final myGrades = svc.myGradesByExam;
 
@@ -49,12 +51,24 @@ class _GradesViewState extends State<_GradesView> {
         if (e.id != null && myGrades.containsKey(e.id)) e,
     ];
     if (graded.isEmpty) {
-      return _RefreshableEmpty(onRefresh: svc.refresh, text: 'No grades yet');
+      return RefreshIndicator(
+        onRefresh: svc.refresh,
+        child: ListView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.only(top: 80),
+          children: const [
+            EmptyState(
+              icon: FIcons.sparkles,
+              title: 'No grades yet',
+              message: 'Your grades appear here as soon as a teacher enters them. Pull down to refresh.',
+            ),
+          ],
+        ),
+      );
     }
 
     final semKeys = {for (final e in graded) _semesterKey(e.date)};
-    final yearsDesc = {for (final k in semKeys) k ~/ 10}.toList()
-      ..sort((a, b) => b.compareTo(a));
+    final yearsDesc = {for (final k in semKeys) k ~/ 10}.toList()..sort((a, b) => b.compareTo(a));
     final periods = <int>[];
     for (final y in yearsDesc) {
       if (y == 0) {
@@ -78,106 +92,146 @@ class _GradesViewState extends State<_GradesView> {
       ...svc.classNameById,
     };
     final byClass = <String, List<ExamDto>>{};
+    final inPeriod = <ExamDto>[];
     for (final e in graded) {
       if (!inSelection(_semesterKey(e.date))) continue;
+      inPeriod.add(e);
       byClass.putIfAbsent(e.classId ?? '-', () => []).add(e);
     }
     for (final list in byClass.values) {
-      list.sort((a, b) => (a.date?.compareTo(b.date ?? a.date!) ?? 0));
+      list.sort((a, b) => (b.date?.compareTo(a.date ?? b.date!) ?? 0));
     }
 
-    return Column(
-      children: [
-        if (periods.length > 1)
+    final classAverages = <String, double>{};
+    double ws = 0, ss = 0;
+    int below = 0;
+    for (final entry in byClass.entries) {
+      double cws = 0, css = 0;
+      for (final e in entry.value) {
+        final g = myGrades[e.id];
+        if (g == null || !isGraded(g.score)) continue;
+        final w = (g.weighting ?? 1).toDouble();
+        cws += w;
+        css += g.score!.toDouble() * w;
+        ws += w;
+        ss += g.score!.toDouble() * w;
+        if (g.score! < 4) below++;
+      }
+      if (cws > 0) classAverages[entry.key] = css / cws;
+    }
+    final average = ws > 0 ? ss / ws : null;
+    final best = classAverages.entries.fold<MapEntry<String, double>?>(
+        null, (m, e) => m == null || e.value > m.value ? e : m);
+
+    final sections = byClass.entries.toList()
+      ..sort((a, b) => (classNames[a.key] ?? '').compareTo(classNames[b.key] ?? ''));
+
+    return RefreshIndicator(
+      onRefresh: svc.refresh,
+      child: ListView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.only(top: 12, bottom: 32),
+        children: [
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-            child: Align(
-              alignment: Alignment.centerRight,
-              child: SizedBox(
-                width: 150,
-                child: FSelect<int>(
-                  control: FSelectControl<int>.lifted(
-                    value: selected,
-                    onChange: (k) => setState(() => _selectedKey = k ?? selected),
-                  ),
-                  items: {for (final k in periods) _periodLabel(k): k},
-                ),
+            padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
+            child: Text('Grades', style: typography.xl2.copyWith(fontWeight: FontWeight.w800)),
+          ),
+          if (periods.length > 1)
+            ChoiceChips<int>(
+              items: {for (final k in periods) k: _periodLabel(k)},
+              selected: selected,
+              onSelect: (k) => setState(() => _selectedKey = k),
+            ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+            child: StatRow(children: [
+              StatCard(
+                icon: FIcons.sigma,
+                accent: average == null ? Accent.neutral : gradeAccent(average),
+                value: average == null ? '-' : formatGrade(average),
+                label: 'Average',
+              ),
+              StatCard(
+                icon: FIcons.listChecks,
+                value: '${inPeriod.length}',
+                label: inPeriod.length == 1 ? 'Exam' : 'Exams',
+              ),
+              StatCard(
+                icon: below > 0 ? FIcons.triangleAlert : FIcons.trophy,
+                accent: below > 0 ? Accent.amber : Accent.neutral,
+                value: below > 0 ? '$below' : (best == null ? '-' : formatGrade(best.value)),
+                label: below > 0 ? 'Below 4' : 'Best subject',
+              ),
+            ]),
+          ),
+          for (final entry in sections)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 20),
+              child: _ClassSection(
+                title: classNames[entry.key] ?? 'Class',
+                average: classAverages[entry.key],
+                exams: entry.value,
+                myGrades: myGrades,
               ),
             ),
-          ),
-        Expanded(
-          child: RefreshIndicator(
-            onRefresh: svc.refresh,
-            child: ListView(
-              physics: const AlwaysScrollableScrollPhysics(),
-              padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
-              children: [
-                for (final entry in byClass.entries)
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 10),
-                    child: _ClassSection(
-                      title: classNames[entry.key] ?? 'Class',
-                      exams: entry.value,
-                      myGrades: myGrades,
-                    ),
-                  ),
-              ],
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Text(
+              'Averages are weighted by each exam\'s weighting.',
+              style: typography.xs.copyWith(color: colors.mutedForeground),
             ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }
 
 class _ClassSection extends StatelessWidget {
   final String title;
+  final double? average;
   final List<ExamDto> exams;
   final Map<String, GradeDto> myGrades;
-  const _ClassSection({required this.title, required this.exams, required this.myGrades});
+  const _ClassSection({required this.title, required this.average, required this.exams, required this.myGrades});
 
   @override
   Widget build(BuildContext context) {
+    final colors = context.theme.colors;
     final typography = context.theme.typography;
-
-    double ws = 0, ss = 0;
-    for (final e in exams) {
-      final g = myGrades[e.id];
-      if (g == null || !isGraded(g.score)) continue;
-      final w = (g.weighting ?? 1).toDouble();
-      ws += w;
-      ss += g.score!.toDouble() * w;
-    }
-    final avg = ws > 0 ? ss / ws : null;
-
+    final avg = average;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(4, 4, 4, 8),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Flexible(child: Text(title, style: typography.base.copyWith(fontWeight: FontWeight.w600))),
-              if (avg != null)
-                Text('⌀ ${formatGrade(avg)}',
-                    style: typography.sm.copyWith(color: gradeColor(context, avg), fontWeight: FontWeight.w700)),
-            ],
-          ),
+        SectionHeader(
+          icon: FIcons.bookOpen,
+          title: title,
+          trailing: avg == null
+              ? null
+              : Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text('Ø ', style: typography.sm.copyWith(color: colors.mutedForeground)),
+                    Text(formatGrade(avg),
+                        style: typography.sm.copyWith(color: gradeColor(context, avg), fontWeight: FontWeight.w700)),
+                  ],
+                ),
         ),
-        for (final e in exams)
-          Padding(
-            padding: const EdgeInsets.only(bottom: 8),
-            child: FTile(
-              title: Text(e.name),
-              subtitle: Text([
-                if ((myGrades[e.id]?.weighting ?? 1) != 1) 'weight ${formatGrade(myGrades[e.id]!.weighting ?? 1)}',
-                'class ⌀ ${formatGrade(e.classAverage)}',
-              ].join(' · ')),
-              suffix: GradePill(myGrades[e.id]?.score),
-              onPress: () => _showExamDetail(context, e, myGrades[e.id]),
-            ),
-          ),
+        FTileGroup(
+          divider: FItemDivider.full,
+          children: [
+            for (final e in exams)
+              FTile(
+                prefix: e.date != null ? DateChip(fromApiDate(e.date!)) : const Icon(FIcons.fileText),
+                title: Text(e.name),
+                subtitle: Text([
+                  if (isGraded(e.classAverage)) 'class Ø ${formatGrade(e.classAverage)}',
+                  if ((myGrades[e.id]?.weighting ?? 1) != 1) 'weight ${formatGrade(myGrades[e.id]!.weighting ?? 1)}',
+                ].join(' · ')),
+                suffix: GradePill(myGrades[e.id]?.score),
+                onPress: () => _showExamDetail(context, e, myGrades[e.id]),
+              ),
+          ],
+        ),
       ],
     );
   }
@@ -203,80 +257,89 @@ class _ExamDetailSheet extends StatelessWidget {
     final typography = context.theme.typography;
     final score = grade?.score;
     final classAvg = exam.classAverage;
+    final diff = isGraded(score) && isGraded(classAvg) ? score! - classAvg : null;
 
-    Widget bar(String label, num? value) {
-      final v = value ?? 0;
-      final pct = (v / 6).clamp(0.0, 1.0);
-      final c = isGraded(value) ? gradeColor(context, v) : colors.muted;
-      return Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    Widget figure(String label, num? value) => Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(label, style: typography.sm.copyWith(color: colors.mutedForeground)),
-              Text(isGraded(value) ? formatGrade(v) : '-',
-                  style: typography.sm.copyWith(fontWeight: FontWeight.w700, color: c)),
+              Text(label, style: typography.xs.copyWith(color: colors.mutedForeground)),
+              const SizedBox(height: 4),
+              Text(isGraded(value) ? formatGrade(value!) : '-',
+                  style: typography.xl2.copyWith(
+                    fontWeight: FontWeight.w800,
+                    height: 1,
+                    color: isGraded(value) ? gradeColor(context, value!) : colors.mutedForeground,
+                    fontFeatures: const [FontFeature.tabularFigures()],
+                  )),
             ],
           ),
-          const SizedBox(height: 4),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(6),
-            child: LinearProgressIndicator(
-              value: pct,
-              minHeight: 8,
-              backgroundColor: colors.muted,
-              valueColor: AlwaysStoppedAnimation(c),
-            ),
-          ),
-        ],
-      );
-    }
+        );
 
     return Container(
-      decoration: BoxDecoration(color: colors.background),
-      padding: EdgeInsets.fromLTRB(20, 20, 20, 24 + MediaQuery.viewPaddingOf(context).bottom),
+      decoration: BoxDecoration(
+        color: colors.background,
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      padding: EdgeInsets.fromLTRB(20, 12, 20, 24 + MediaQuery.viewPaddingOf(context).bottom),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Text(exam.name, style: typography.lg.copyWith(fontWeight: FontWeight.w700)),
+          Center(
+            child: Container(
+              width: 40,
+              height: 4,
+              margin: const EdgeInsets.only(bottom: 16),
+              decoration: BoxDecoration(color: colors.border, borderRadius: BorderRadius.circular(2)),
+            ),
+          ),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(exam.name, style: typography.lg.copyWith(fontWeight: FontWeight.w700)),
+                    const SizedBox(height: 2),
+                    Text(
+                      [
+                        if (exam.date != null) formatDayShort(fromApiDate(exam.date!)),
+                        if ((grade?.weighting ?? 1) != 1) 'weight ${formatGrade(grade!.weighting ?? 1)}',
+                      ].join(' · '),
+                      style: typography.sm.copyWith(color: colors.mutedForeground),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
           if ((exam.description?.isNotEmpty ?? false)) ...[
-            const SizedBox(height: 4),
-            Text(exam.description!, style: TextStyle(color: colors.mutedForeground)),
+            const SizedBox(height: 10),
+            Text(exam.description!, style: typography.sm.copyWith(color: colors.mutedForeground)),
           ],
           const SizedBox(height: 20),
-          bar('Your score', score),
-          const SizedBox(height: 14),
-          bar('Class average', classAvg),
-          if ((grade?.weighting ?? 1) != 1) ...[
-            const SizedBox(height: 16),
-            Text('Weighting: ${formatGrade(grade!.weighting ?? 1)}',
-                style: typography.sm.copyWith(color: colors.mutedForeground)),
+          Row(children: [figure('Your grade', score), figure('Class average', classAvg)]),
+          if (diff != null) ...[
+            const SizedBox(height: 14),
+            Row(
+              children: [
+                Icon(
+                  diff >= 0 ? FIcons.trendingUp : FIcons.trendingDown,
+                  size: 16,
+                  color: diff >= 0 ? Accent.green.color : Accent.amber.color,
+                ),
+                const SizedBox(width: 6),
+                Text(
+                  diff == 0
+                      ? 'Exactly the class average'
+                      : '${diff > 0 ? '+' : ''}${formatGrade(diff)} compared to the class',
+                  style: typography.sm.copyWith(color: colors.mutedForeground),
+                ),
+              ],
+            ),
           ],
-        ],
-      ),
-    );
-  }
-}
-
-class _RefreshableEmpty extends StatelessWidget {
-  final Future<void> Function() onRefresh;
-  final String text;
-  const _RefreshableEmpty({required this.onRefresh, required this.text});
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = context.theme.colors;
-    return RefreshIndicator(
-      onRefresh: onRefresh,
-      child: ListView(
-        physics: const AlwaysScrollableScrollPhysics(),
-        children: [
-          SizedBox(
-            height: 360,
-            child: Center(child: Text(text, style: TextStyle(color: colors.mutedForeground))),
-          ),
         ],
       ),
     );

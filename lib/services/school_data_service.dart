@@ -32,6 +32,7 @@ class SchoolDataService extends ChangeNotifier {
   Object? _error;
   int _generation = 0;
   bool _hasLoaded = false;
+  bool _seeded = false;
   String? _snapshotKey;
 
   SchoolUserDto? get me => _me;
@@ -104,7 +105,24 @@ class SchoolDataService extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Replaces all data with [snapshot] and treats it as loaded. Used by the
+  /// demo build; a later [refresh] is a no-op there.
+  void seed(SchoolDataSnapshot snapshot) {
+    _seeded = true;
+    _me = snapshot.me;
+    _exams = snapshot.exams;
+    _agenda = snapshot.agenda;
+    _absences = snapshot.absences;
+    _classes = snapshot.classes;
+    _reports = snapshot.reports;
+    _teachers = snapshot.teachers;
+    _documents = snapshot.documents;
+    _hasLoaded = true;
+    notifyListeners();
+  }
+
   Future<void> refresh() async {
+    if (_seeded) return;
     final gen = ++_generation;
     final key = _currentKey;
     if (_snapshotKey != null && _snapshotKey != key) _resetData();

@@ -128,19 +128,22 @@ class _PrivateConnectScreenState extends State<PrivateConnectScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final colors = context.theme.colors;
     return FScaffold(
       header: FHeader.nested(
         title: Text('Connect ${_system.displayName}'),
         prefixes: [FHeaderAction.back(onPress: () => Navigator.of(context).pop())],
       ),
-      child: Column(
+      childPad: false,
+      child: SingleChildScrollView(
+        padding: EdgeInsets.fromLTRB(16, 8, 16, 24 + MediaQuery.viewPaddingOf(context).bottom),
+        child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         spacing: 16,
         children: [
-          const Text(
-            'Private mode keeps everything on this device - no account, '
-            'nothing stored on a server.',
+          const FAlert(
+            icon: Icon(FIcons.shieldCheck),
+            title: Text('Private mode'),
+            subtitle: Text('Your login stays on this device. Nothing is stored on a server.'),
           ),
           DynamicLoginForm(controller: _form),
           FTextField(
@@ -148,12 +151,19 @@ class _PrivateConnectScreenState extends State<PrivateConnectScreen> {
             label: const Text('Display Name'),
           ),
           FButton(
+            prefix: _busy ? null : const Icon(FIcons.plus),
             onPress: _busy ? null : _connect,
             child: Text(_busy ? 'Working…' : 'Connect'),
           ),
           if (_error != null)
-            SelectableText(_error!, style: TextStyle(color: colors.destructive)),
+            FAlert(
+              style: FAlertStyle.destructive(),
+              icon: const Icon(FIcons.triangleAlert),
+              title: const Text('Could not connect'),
+              subtitle: Text(_error!),
+            ),
         ],
+      ),
       ),
     );
   }

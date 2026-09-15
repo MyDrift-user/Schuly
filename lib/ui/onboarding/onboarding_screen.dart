@@ -230,7 +230,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
                 width: double.infinity,
                 child: FButton(
                   onPress: _buttonAction,
-                  child: Text(_buttonLabel),
+                  suffix: (_probing || _busy) ? null : Icon(_page == _modePage ? FIcons.check : FIcons.arrowRight),
+                  child: Text(_page == _modePage ? (_busy ? 'Please wait...' : 'Get started') : _buttonLabel),
                 ),
               ),
             ),
@@ -492,15 +493,13 @@ class _ModeCard extends StatelessWidget {
     final typography = context.theme.typography;
     final radius = BorderRadius.circular(14);
 
-    return Material(
-      color: selected ? colors.primary.withValues(alpha: 0.08) : colors.secondary,
-      borderRadius: radius,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: radius,
-        child: Container(
+    return FTappable(
+      onPress: onTap,
+      child: AnimatedContainer(
+          duration: const Duration(milliseconds: 150),
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
           decoration: BoxDecoration(
+            color: selected ? colors.primary.withValues(alpha: 0.08) : colors.background,
             borderRadius: radius,
             border: Border.all(
               color: selected ? colors.primary : colors.border,
@@ -528,7 +527,7 @@ class _ModeCard extends StatelessWidget {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(icon, size: 30, color: colors.primary),
+                    Icon(icon, size: 30, color: selected ? colors.primary : colors.mutedForeground),
                     const SizedBox(height: 10),
                     Wrap(
                       alignment: WrapAlignment.center,
@@ -567,7 +566,6 @@ class _ModeCard extends StatelessWidget {
               ),
             ],
           ),
-        ),
       ),
     );
   }

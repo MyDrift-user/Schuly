@@ -4,6 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:forui/forui.dart';
 
+import '../core/ui/accents.dart';
+
 import '../../services/totp_service.dart';
 import '../../services/totp_vault.dart';
 
@@ -74,15 +76,22 @@ class _TotpAddedSheetState extends State<_TotpAddedSheet> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           spacing: 16,
           children: [
-            Text(
-              widget.entry.title,
-              style: typography.lg.copyWith(fontWeight: FontWeight.w700),
+            Row(
+              children: [
+                Icon(FIcons.badgeCheck, size: 28, color: Accent.green.color),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(widget.entry.title, style: typography.lg.copyWith(fontWeight: FontWeight.w700)),
+                      if ((widget.entry.subtitle ?? '').isNotEmpty)
+                        Text(widget.entry.subtitle!, style: typography.sm.copyWith(color: colors.mutedForeground)),
+                    ],
+                  ),
+                ),
+              ],
             ),
-            if ((widget.entry.subtitle ?? '').isNotEmpty)
-              Text(
-                widget.entry.subtitle!,
-                style: typography.sm.copyWith(color: colors.mutedForeground),
-              ),
             Text(
               'Enter this code where you scanned the QR code to confirm the new device.',
               style: typography.sm.copyWith(color: colors.mutedForeground),

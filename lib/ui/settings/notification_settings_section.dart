@@ -4,6 +4,8 @@ import 'package:forui/forui.dart';
 import '../../l10n/app_localizations.dart';
 import '../../services/app_mode_service.dart';
 import '../../services/push_service.dart';
+import '../core/ui/accents.dart';
+import '../core/ui/section_header.dart';
 
 class NotificationSettingsSection extends StatefulWidget {
   const NotificationSettingsSection({super.key, this.service});
@@ -31,57 +33,66 @@ class _NotificationSettingsSectionState extends State<NotificationSettingsSectio
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _SectionLabel(t.notifications),
-            Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: FTile(
-                prefix: const Icon(FIcons.bell),
-                title: Text(t.pushNotifications),
-                subtitle: Text(
-                  !_service.supported
-                      ? t.pushUnavailable
-                      : status == PushStatus.denied
-                          ? t.pushDenied
-                          : t.pushNotificationsSubtitle,
+            SectionHeader(icon: FIcons.bell, title: t.notifications),
+            FTileGroup(
+              divider: FItemDivider.full,
+              children: [
+                FTile(
+                  prefix: Icon(
+                    status == PushStatus.on ? FIcons.bellRing : FIcons.bellOff,
+                    color: status == PushStatus.on ? context.theme.colors.primary : null,
+                  ),
+                  title: Text(t.pushNotifications),
+                  subtitle: Text(
+                    !_service.supported
+                        ? t.pushUnavailable
+                        : status == PushStatus.denied
+                            ? t.pushDenied
+                            : t.pushNotificationsSubtitle,
+                  ),
+                  suffix: FSwitch(
+                    value: status == PushStatus.on,
+                    enabled: !disabled,
+                    onChange: disabled
+                        ? null
+                        : (v) => v ? _service.enable() : _service.disable(),
+                  ),
                 ),
-                suffix: FSwitch(
-                  value: status == PushStatus.on,
-                  enabled: !disabled,
-                  onChange: disabled
-                      ? null
-                      : (v) => v ? _service.enable() : _service.disable(),
-                ),
-              ),
+                if (status == PushStatus.on) ...[
+                  _PreferenceTile(
+                    icon: FIcons.chartColumn,
+                    accent: Accent.green,
+                    title: t.notifyGrades,
+                    value: _service.preferences.grades,
+                    onChange: (v) => _service.setPreferences(_service.preferences.rebuild((b) => b..grades = v)),
+                  ),
+                  _PreferenceTile(
+                    icon: FIcons.calendarOff,
+                    accent: Accent.red,
+                    title: t.notifyAbsences,
+                    value: _service.preferences.absences,
+                    onChange: (v) => _service.setPreferences(_service.preferences.rebuild((b) => b..absences = v)),
+                  ),
+                  _PreferenceTile(
+                    icon: FIcons.calendarDays,
+                    accent: Accent.blue,
+                    title: t.notifyAgenda,
+                    value: _service.preferences.agenda,
+                    onChange: (v) => _service.setPreferences(_service.preferences.rebuild((b) => b..agenda = v)),
+                  ),
+                  _PreferenceTile(
+                    icon: FIcons.eye,
+                    accent: Accent.amber,
+                    title: t.notifyGradeValue,
+                    subtitle: t.notifyGradeValueSubtitle,
+                    value: _service.preferences.includeGradeValue,
+                    onChange: (v) =>
+                        _service.setPreferences(_service.preferences.rebuild((b) => b..includeGradeValue = v)),
+                  ),
+                ],
+              ],
             ),
-            if (status == PushStatus.on) ...[
-              _PreferenceTile(
-                icon: FIcons.chartColumn,
-                title: t.notifyGrades,
-                value: _service.preferences.grades,
-                onChange: (v) => _service.setPreferences(_service.preferences.rebuild((b) => b..grades = v)),
-              ),
-              _PreferenceTile(
-                icon: FIcons.calendarOff,
-                title: t.notifyAbsences,
-                value: _service.preferences.absences,
-                onChange: (v) => _service.setPreferences(_service.preferences.rebuild((b) => b..absences = v)),
-              ),
-              _PreferenceTile(
-                icon: FIcons.calendarDays,
-                title: t.notifyAgenda,
-                value: _service.preferences.agenda,
-                onChange: (v) => _service.setPreferences(_service.preferences.rebuild((b) => b..agenda = v)),
-              ),
-              _PreferenceTile(
-                icon: FIcons.eye,
-                title: t.notifyGradeValue,
-                subtitle: t.notifyGradeValueSubtitle,
-                value: _service.preferences.includeGradeValue,
-                onChange: (v) =>
-                    _service.setPreferences(_service.preferences.rebuild((b) => b..includeGradeValue = v)),
-              ),
-            ],
-            const SizedBox(height: 20),
+            const SizedBox(height: 24),
           ],
         );
       },
@@ -89,37 +100,27 @@ class _NotificationSettingsSectionState extends State<NotificationSettingsSectio
   }
 }
 
-class _PreferenceTile extends StatelessWidget {
+class _PreferenceTile extends StatelessWidget with FTileMixin {
   final IconData icon;
+  final Accent accent;
   final String title;
   final String? subtitle;
   final bool value;
   final ValueChanged<bool> onChange;
-  const _PreferenceTile({required this.icon, required this.title, this.subtitle, required this.value, required this.onChange});
+  const _PreferenceTile({
+    required this.icon,
+    required this.accent,
+    required this.title,
+    this.subtitle,
+    required this.value,
+    required this.onChange,
+  });
 
   @override
-  Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.only(bottom: 8),
-        child: FTile(
-          prefix: Icon(icon),
-          title: Text(title),
-          subtitle: subtitle != null ? Text(subtitle!) : null,
-          suffix: FSwitch(value: value, onChange: onChange),
-        ),
+  Widget build(BuildContext context) => FTile(
+        prefix: Icon(icon, color: value ? context.theme.colors.primary : null),
+        title: Text(title),
+        subtitle: subtitle != null ? Text(subtitle!) : null,
+        suffix: FSwitch(value: value, onChange: onChange),
       );
-}
-
-class _SectionLabel extends StatelessWidget {
-  final String text;
-  const _SectionLabel(this.text);
-  @override
-  Widget build(BuildContext context) {
-    final c = context.theme.colors;
-    final t = context.theme.typography;
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(4, 0, 4, 8),
-      child: Text(text.toUpperCase(),
-          style: t.xs.copyWith(color: c.mutedForeground, fontWeight: FontWeight.w600, letterSpacing: 0.5)),
-    );
-  }
 }

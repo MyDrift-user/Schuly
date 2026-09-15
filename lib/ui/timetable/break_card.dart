@@ -4,10 +4,9 @@ import 'package:forui/forui.dart';
 import '../../l10n/app_localizations.dart';
 import 'day_schedule.dart';
 
-/// A gap between two lessons. Kept in the same outlined tile language as
-/// [LessonTile] but visibly slimmer and muted, since breaks are secondary
-/// information: single line, tighter padding, no subtitle row.
-class BreakCard extends StatelessWidget {
+/// A gap between two lessons. Same tile language as [LessonTile] but visibly
+/// slimmer and muted, since breaks are secondary information.
+class BreakCard extends StatelessWidget with FTileMixin {
   const BreakCard({super.key, required this.item, required this.now, this.showTime = true});
 
   final BreakItem item;
@@ -25,7 +24,7 @@ class BreakCard extends StatelessWidget {
     final current = item.isCurrentAt(now);
 
     final label = item.isLunch ? t.lunchBreakDuration(item.minutes) : t.breakDuration(item.minutes);
-    final range = showTime ? '${formatHm(item.start)} – ${formatHm(item.end)}' : null;
+    final range = showTime ? '${formatHm(item.start)} - ${formatHm(item.end)}' : null;
     final base = range == null ? label : '$label · $range';
     final remaining = current ? t.minutesLeft(item.remainingMinutesAt(now)) : null;
 
@@ -43,12 +42,14 @@ class BreakCard extends StatelessWidget {
     }
 
     return FTile(
-      style: (style) =>
-          style.copyWith(contentStyle: (content) => content.copyWith(padding: const EdgeInsetsDirectional.fromSTEB(15, 6, 10, 6))),
-      prefix: Icon(item.isLunch ? FIcons.utensils : FIcons.coffee, size: 14, color: colors.mutedForeground),
+      style: (style) => style.copyWith(
+        backgroundColor: FWidgetStateMap.all(colors.muted.withValues(alpha: 0.4)),
+        contentStyle: (content) => content.copyWith(padding: const EdgeInsetsDirectional.fromSTEB(16, 8, 12, 8)),
+      ),
+      prefix: Icon(item.isLunch ? FIcons.utensils : FIcons.coffee, size: 16, color: colors.mutedForeground),
       title: title,
       details: showTime && remaining != null
-          ? Text(remaining, style: TextStyle(color: colors.primary, fontWeight: FontWeight.w600))
+          ? Text(remaining, style: typography.sm.copyWith(color: colors.primary, fontWeight: FontWeight.w600))
           : null,
     );
   }

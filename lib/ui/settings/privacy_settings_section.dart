@@ -12,6 +12,7 @@ import '../../services/api_client.dart';
 import '../../services/app_mode_service.dart';
 import '../../services/toast_service.dart';
 import '../core/ui/root_screen.dart';
+import '../core/ui/section_header.dart';
 
 const _handled = <String, dynamic>{ApiClient.handlesErrors: true};
 
@@ -68,47 +69,43 @@ class _PrivacySettingsSectionState extends State<PrivacySettingsSection> {
   @override
   Widget build(BuildContext context) {
     final colors = context.theme.colors;
-    final typography = context.theme.typography;
     final t = AppLocalizations.of(context)!;
 
     return Padding(
-      padding: const EdgeInsets.only(bottom: 20),
+      padding: const EdgeInsets.only(bottom: 24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(4, 0, 4, 8),
-            child: Text(
-              t.privacySectionLabel.toUpperCase(),
-              style: typography.xs.copyWith(
-                color: colors.mutedForeground,
-                fontWeight: FontWeight.w600,
-                letterSpacing: 0.5,
-              ),
-            ),
-          ),
+          SectionHeader(icon: FIcons.shield, title: t.privacySectionLabel),
           if (AppModeService.instance.isPrivate)
-            FTile(
-              prefix: const Icon(FIcons.shieldCheck),
-              title: Text(t.privacyPrivateModeTitle),
-              subtitle: Text(t.privacyPrivateModeSubtitle),
+            FTileGroup(
+              divider: FItemDivider.full,
+              children: [
+                FTile(
+                  prefix: const Icon(FIcons.shieldCheck),
+                  title: Text(t.privacyPrivateModeTitle),
+                  subtitle: Text(t.privacyPrivateModeSubtitle),
+                ),
+              ],
             )
-          else ...[
-            FTile(
-              prefix: const Icon(FIcons.download),
-              title: Text(t.exportDataTitle),
-              subtitle: Text(t.exportDataSubtitle),
-              suffix: _exporting ? const FCircularProgress() : null,
-              onPress: _exporting ? null : _export,
+          else
+            FTileGroup(
+              divider: FItemDivider.full,
+              children: [
+                FTile(
+                  prefix: _exporting ? const FCircularProgress() : const Icon(FIcons.download),
+                  title: Text(t.exportDataTitle),
+                  subtitle: Text(t.exportDataSubtitle),
+                  onPress: _exporting ? null : _export,
+                ),
+                FTile(
+                  prefix: Icon(FIcons.trash2, color: colors.destructive),
+                  title: Text(t.deleteAccountTitle, style: TextStyle(color: colors.destructive)),
+                  subtitle: Text(t.deleteAccountSubtitle),
+                  onPress: _delete,
+                ),
+              ],
             ),
-            const SizedBox(height: 8),
-            FTile(
-              prefix: Icon(FIcons.trash2, color: colors.destructive),
-              title: Text(t.deleteAccountTitle, style: TextStyle(color: colors.destructive)),
-              subtitle: Text(t.deleteAccountSubtitle),
-              onPress: _delete,
-            ),
-          ],
         ],
       ),
     );

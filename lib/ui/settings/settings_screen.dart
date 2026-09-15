@@ -12,6 +12,7 @@ import '../../services/private_account_store.dart';
 import '../../services/profile_refresh_requests.dart';
 import '../../services/school_data_service.dart';
 import '../../services/theme_service.dart';
+import '../core/ui/section_header.dart';
 import 'notification_settings_section.dart';
 import 'privacy_settings_section.dart';
 
@@ -25,6 +26,7 @@ class SettingsScreen extends StatefulWidget {
 class _SettingsScreenState extends State<SettingsScreen> {
   @override
   Widget build(BuildContext context) {
+    final colors = context.theme.colors;
     final server = BackendConfig.isCustom ? BackendConfig.url : 'Schuly Cloud';
 
     return FScaffold(
@@ -38,79 +40,81 @@ class _SettingsScreenState extends State<SettingsScreen> {
         padding: EdgeInsets.fromLTRB(16, 8, 16, 24 + MediaQuery.viewPaddingOf(context).bottom),
         children: [
           if (!AppModeService.instance.isPrivate) ...[
-            const _SectionLabel('Account'),
-            Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: FTile(
-                prefix: const Icon(FIcons.circleUser),
-                title: const Text('Manage account'),
-                subtitle: const Text('Profile, password & security'),
-                suffix: const Icon(FIcons.externalLink),
-                onPress: _openAccountConsole,
-              ),
+            const SectionHeader(icon: FIcons.circleUser, title: 'Account'),
+            FTileGroup(
+              divider: FItemDivider.full,
+              children: [
+                FTile(
+                  prefix: const Icon(FIcons.userCog),
+                  title: const Text('Manage account'),
+                  subtitle: const Text('Profile, password & security'),
+                  suffix: Icon(FIcons.externalLink, color: colors.mutedForeground),
+                  onPress: _openAccountConsole,
+                ),
+                FTile(
+                  prefix: const Icon(FIcons.image),
+                  title: const Text('Profile picture'),
+                  subtitle: const Text('Upload or change your picture'),
+                  suffix: Icon(FIcons.externalLink, color: colors.mutedForeground),
+                  onPress: _openProfilePicture,
+                ),
+              ],
             ),
-            Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: FTile(
-                prefix: const Icon(FIcons.image),
-                title: const Text('Profile picture'),
-                subtitle: const Text('Upload or change your picture'),
-                suffix: const Icon(FIcons.externalLink),
-                onPress: _openProfilePicture,
-              ),
-            ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 24),
           ],
-          const _SectionLabel('Appearance'),
+          const SectionHeader(icon: FIcons.palette, title: 'Appearance'),
           AnimatedBuilder(
             animation: ThemeService.instance,
-            builder: (context, _) {
-              final mode = ThemeService.instance.mode;
-              final colors = context.theme.colors;
-              Widget modeTile(ThemeMode value, String label) => Padding(
-                    padding: const EdgeInsets.only(bottom: 8),
-                    child: FTile(
-                      title: Text(label),
-                      suffix: mode == value
-                          ? Icon(FIcons.check, color: colors.primary)
-                          : null,
-                      onPress: () => ThemeService.instance.setMode(value),
-                    ),
-                  );
-              return Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  modeTile(ThemeMode.system, 'System'),
-                  modeTile(ThemeMode.light, 'Light'),
-                  modeTile(ThemeMode.dark, 'Dark'),
-                ],
-              );
-            },
+            builder: (context, _) => Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                _ThemeModePicker(
+                  mode: ThemeService.instance.mode,
+                  onChange: ThemeService.instance.setMode,
+                ),
+                const SizedBox(height: 12),
+                _AccentPicker(
+                  accent: ThemeService.instance.accent,
+                  onChange: ThemeService.instance.setAccent,
+                ),
+              ],
+            ),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 24),
           const NotificationSettingsSection(),
-          const _SectionLabel('Server'),
-          Padding(
-            padding: const EdgeInsets.only(bottom: 8),
-            child: FTile(
-              prefix: const Icon(FIcons.server),
-              title: const Text('Backend server'),
-              subtitle: Text(server),
-              suffix: const Icon(FIcons.chevronRight),
-              onPress: _openServerDialog,
-            ),
+          const SectionHeader(icon: FIcons.server, title: 'Server'),
+          FTileGroup(
+            divider: FItemDivider.full,
+            children: [
+              FTile(
+                prefix: Icon(BackendConfig.isCustom ? FIcons.server : FIcons.cloud),
+                title: const Text('Backend server'),
+                subtitle: Text(server),
+                suffix: const Icon(FIcons.chevronRight),
+                onPress: _openServerDialog,
+              ),
+            ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 24),
           const PrivacySettingsSection(),
-          const _SectionLabel('About'),
-          FTile(
-            prefix: const Icon(FIcons.fileText),
-            title: const Text('Open-source licenses'),
-            suffix: const Icon(FIcons.chevronRight),
-            onPress: () => showLicensePage(
-              context: context,
-              applicationName: 'Schuly',
-            ),
+          const SectionHeader(icon: FIcons.info, title: 'About'),
+          FTileGroup(
+            divider: FItemDivider.full,
+            children: [
+              FTile(
+                prefix: const Icon(FIcons.bookOpen),
+                title: const Text('Documentation'),
+                subtitle: const Text('docs.schuly.dev'),
+                suffix: Icon(FIcons.externalLink, color: colors.mutedForeground),
+                onPress: () => launchUrl(Uri.parse('https://docs.schuly.dev/'), mode: LaunchMode.externalApplication),
+              ),
+              FTile(
+                prefix: const Icon(FIcons.scrollText),
+                title: const Text('Open-source licenses'),
+                suffix: const Icon(FIcons.chevronRight),
+                onPress: () => showLicensePage(context: context, applicationName: 'Schuly'),
+              ),
+            ],
           ),
         ],
       ),
@@ -161,17 +165,110 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 }
 
-class _SectionLabel extends StatelessWidget {
-  final String text;
-  const _SectionLabel(this.text);
+class _ThemeModePicker extends StatelessWidget {
+  final ThemeMode mode;
+  final ValueChanged<ThemeMode> onChange;
+  const _ThemeModePicker({required this.mode, required this.onChange});
+
   @override
   Widget build(BuildContext context) {
-    final c = context.theme.colors;
-    final t = context.theme.typography;
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(4, 0, 4, 8),
-      child: Text(text.toUpperCase(),
-          style: t.xs.copyWith(color: c.mutedForeground, fontWeight: FontWeight.w600, letterSpacing: 0.5)),
+    final colors = context.theme.colors;
+    final typography = context.theme.typography;
+
+    Widget option(ThemeMode value, IconData icon, String label) {
+      final selected = mode == value;
+      return Expanded(
+        child: FTappable(
+          onPress: () => onChange(value),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 150),
+            padding: const EdgeInsets.symmetric(vertical: 12),
+            decoration: BoxDecoration(
+              color: selected ? colors.primary : colors.background,
+              border: Border.all(color: selected ? colors.primary : colors.border),
+              borderRadius: context.theme.style.borderRadius,
+            ),
+            child: Column(
+              children: [
+                Icon(icon, size: 20, color: selected ? colors.primaryForeground : colors.mutedForeground),
+                const SizedBox(height: 6),
+                Text(label,
+                    style: typography.xs.copyWith(
+                      fontWeight: FontWeight.w600,
+                      color: selected ? colors.primaryForeground : colors.foreground,
+                    )),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
+    return Row(
+      children: [
+        option(ThemeMode.system, FIcons.smartphone, 'System'),
+        const SizedBox(width: 10),
+        option(ThemeMode.light, FIcons.sun, 'Light'),
+        const SizedBox(width: 10),
+        option(ThemeMode.dark, FIcons.moon, 'Dark'),
+      ],
+    );
+  }
+}
+
+class _AccentPicker extends StatelessWidget {
+  final AppAccent accent;
+  final ValueChanged<AppAccent> onChange;
+  const _AccentPicker({required this.accent, required this.onChange});
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = context.theme.colors;
+    final typography = context.theme.typography;
+    return Container(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 14),
+      decoration: BoxDecoration(
+        color: colors.background,
+        border: Border.all(color: colors.border),
+        borderRadius: context.theme.style.borderRadius,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(FIcons.paintbrush, size: 16, color: colors.mutedForeground),
+              const SizedBox(width: 8),
+              Text('Accent colour', style: typography.sm.copyWith(fontWeight: FontWeight.w600)),
+              const Spacer(),
+              Text(accent.label, style: typography.sm.copyWith(color: colors.mutedForeground)),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              for (final a in AppAccent.values)
+                FTappable(
+                  onPress: () => onChange(a),
+                  child: Container(
+                    width: 36,
+                    height: 36,
+                    decoration: BoxDecoration(
+                      color: a.swatch,
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: a == accent ? colors.foreground : colors.border,
+                        width: a == accent ? 2.5 : 1,
+                      ),
+                    ),
+                    child: a == accent ? const Icon(FIcons.check, size: 18, color: Color(0xFFFFFFFF)) : null,
+                  ),
+                ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 }

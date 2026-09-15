@@ -4,8 +4,8 @@
   "@appTitle": {
     "description": "Application title"
   },
-  "tabStart": "Start",
-  "tabAgenda": "Agenda",
+  "tabStart": "Home",
+  "tabAgenda": "Timetable",
   "tabGrades": "Grades",
   "tabAbsences": "Absences",
   "tabAccount": "Account",

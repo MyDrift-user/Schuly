@@ -7,10 +7,17 @@ import '../../config/oidc_config.dart';
 import '../../services/active_account_service.dart';
 import '../../services/api_client.dart';
 import '../../services/api_error.dart';
+import '../../services/app_mode_service.dart';
 import '../../services/school_data_service.dart';
 import '../../services/toast_service.dart';
+import '../authenticator/authenticator_vault_screen.dart';
 import '../classes/class_detail_screen.dart';
+import '../core/dates.dart';
+import '../core/ui/accents.dart';
+import '../core/ui/chips.dart';
+import '../core/ui/section_header.dart';
 import '../documents/documents_page.dart';
+import '../settings/settings_screen.dart';
 
 class AccountPage extends StatefulWidget {
   final String? pictureUrl;
@@ -108,171 +115,220 @@ class _AccountPageState extends State<AccountPage> {
     }
   }
 
+  void _push(Widget screen) => Navigator.of(context).push(MaterialPageRoute(builder: (_) => screen));
+
   @override
   Widget build(BuildContext context) {
     final colors = context.theme.colors;
     final typography = context.theme.typography;
-    final me = SchoolDataService.instance.me;
+    final svc = SchoolDataService.instance;
+    final me = svc.me;
     final classes = me?.classes ?? const <UserClassDto>[];
+    final isPrivate = AppModeService.instance.isPrivate;
+    final hasPlugin = ActiveAccountService.instance.active?.pluginBasePath?.isNotEmpty ?? false;
 
-    String fmtDate(Date? d) => d == null ? '-' : '${d.day}.${d.month}.${d.year}';
-    final fullName = me == null
-        ? (widget.userName ?? '-')
-        : '${me.firstName} ${me.lastName}'.trim();
+    final fullName = me == null ? (widget.userName ?? '') : '${me.firstName} ${me.lastName}'.trim();
     final initial = fullName.isNotEmpty ? fullName.characters.first.toUpperCase() : '?';
     final fallback = Text(initial,
-        style: TextStyle(color: colors.mutedForeground, fontWeight: FontWeight.w600));
+        style: typography.xl.copyWith(color: colors.mutedForeground, fontWeight: FontWeight.w700));
     final providerPfp = OidcConfig.resolveUrl(me?.profilePictureUrl);
     final avatarUrl = providerPfp ?? widget.pictureUrl;
+    final address = [
+      me?.street,
+      [me?.zip, me?.city].where((s) => (s ?? '').isNotEmpty).join(' '),
+    ].where((s) => (s ?? '').isNotEmpty).join(', ');
 
     return RefreshIndicator(
       onRefresh: () async {
-        await SchoolDataService.instance.refresh();
+        await svc.refresh();
         await _loadVersion();
         await _loadSyncStatus();
       },
       child: ListView(
-      physics: const AlwaysScrollableScrollPhysics(),
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
-      children: [
-        Row(
-          children: [
-            (avatarUrl == null || avatarUrl.isEmpty)
-                ? FAvatar.raw(size: 56, child: fallback)
-                : FAvatar(size: 56, image: NetworkImage(avatarUrl), fallback: fallback),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(fullName.isEmpty ? 'Account' : fullName,
-                      style: typography.lg.copyWith(fontWeight: FontWeight.w700)),
-                  if (me?.role != null)
-                    Padding(
-                      padding: const EdgeInsets.only(top: 4),
-                      child: _Badge(_roleLabel(me!.role)),
-                    ),
-                ],
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
+        children: [
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: colors.background,
+              border: Border.all(color: colors.border),
+              borderRadius: context.theme.style.borderRadius,
+            ),
+            child: Row(
+              children: [
+                (avatarUrl == null || avatarUrl.isEmpty)
+                    ? FAvatar.raw(size: 64, child: fallback)
+                    : FAvatar(size: 64, image: NetworkImage(avatarUrl), fallback: fallback),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(fullName.isEmpty ? 'Account' : fullName,
+                          style: typography.lg.copyWith(fontWeight: FontWeight.w800)),
+                      if (me?.schoolName?.isNotEmpty ?? false)
+                        Text(me!.schoolName!,
+                            style: typography.sm.copyWith(color: colors.mutedForeground),
+                            overflow: TextOverflow.ellipsis),
+                      const SizedBox(height: 8),
+                      Row(
+                        children: [
+                          FBadge(
+                            style: FBadgeStyle.secondary(),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(_roleIcon(me?.role), size: 12),
+                                const SizedBox(width: 4),
+                                Text(_roleLabel(me?.role)),
+                              ],
+                            ),
+                          ),
+                          if (isPrivate) ...[
+                            const SizedBox(width: 6),
+                            FBadge(
+                              style: FBadgeStyle.outline(),
+                              child: const Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(FIcons.shieldCheck, size: 12),
+                                  SizedBox(width: 4),
+                                  Text('Private'),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 24),
+          const SectionHeader(icon: FIcons.idCard, title: 'Profile'),
+          FTileGroup(
+            divider: FItemDivider.full,
+            children: [
+              _InfoTile(icon: FIcons.mail, accent: Accent.blue, label: 'Email', value: me?.email),
+              _InfoTile(icon: FIcons.phone, accent: Accent.green, label: 'Phone', value: me?.phoneNumber),
+              _InfoTile(icon: FIcons.mapPin, accent: Accent.orange, label: 'Address', value: address),
+              _InfoTile(
+                icon: FIcons.cake,
+                accent: Accent.pink,
+                label: 'Birthday',
+                value: me?.birthday == null ? null : formatDate(fromApiDate(me!.birthday!)),
               ),
+            ],
+          ),
+          if (classes.isNotEmpty) ...[
+            const SizedBox(height: 24),
+            const SectionHeader(icon: FIcons.users, title: 'My classes'),
+            FTileGroup(
+              divider: FItemDivider.full,
+              children: [
+                for (final c in classes)
+                  FTile(
+                    prefix: SubjectChip(c.className),
+                    title: Text(c.className),
+                    suffix: const Icon(FIcons.chevronRight),
+                    onPress: () => _push(ClassDetailScreen(classId: c.classId, title: c.className)),
+                  ),
+              ],
             ),
           ],
-        ),
-        const SizedBox(height: 20),
-        _SectionLabel('Profile'),
-        _InfoTile(icon: FIcons.mail, label: 'Email', value: me?.email),
-        _InfoTile(icon: FIcons.phone, label: 'Phone', value: me?.phoneNumber),
-        _InfoTile(
-          icon: FIcons.mapPin,
-          label: 'Address',
-          value: [me?.street, [me?.zip, me?.city].where((s) => (s ?? '').isNotEmpty).join(' ')]
-              .where((s) => (s ?? '').isNotEmpty)
-              .join(', '),
-        ),
-        _InfoTile(icon: FIcons.cake, label: 'Birthday', value: fmtDate(me?.birthday)),
-        const SizedBox(height: 20),
-        if (classes.isNotEmpty) ...[
-          _SectionLabel('My classes'),
-          for (final c in classes)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: FTile(
-                prefix: const Icon(FIcons.users),
-                title: Text(c.className),
-                suffix: const Icon(FIcons.chevronRight),
-                onPress: () => Navigator.of(context).push(MaterialPageRoute(
-                  builder: (_) => ClassDetailScreen(
-                    classId: c.classId,
-                    title: c.className,
+          if (svc.teachers.isNotEmpty) ...[
+            const SizedBox(height: 24),
+            const SectionHeader(icon: FIcons.graduationCap, title: 'Teachers'),
+            FTileGroup(
+              divider: FItemDivider.full,
+              children: [
+                for (final t in svc.teachers)
+                  FTile(
+                    prefix: _Initials(name: '${t.firstName} ${t.lastName}'),
+                    title: Text('${t.firstName} ${t.lastName}'.trim()),
+                    subtitle: t.code.isNotEmpty ? Text(t.code) : null,
+                    suffix: (t.email?.isNotEmpty ?? false) ? Icon(FIcons.mail, color: colors.mutedForeground) : null,
+                    onPress: (t.email?.isNotEmpty ?? false)
+                        ? () => launchUrl(Uri(scheme: 'mailto', path: t.email))
+                        : null,
                   ),
-                )),
+              ],
+            ),
+          ],
+          const SizedBox(height: 24),
+          const SectionHeader(icon: FIcons.layoutGrid, title: 'More'),
+          FTileGroup(
+            divider: FItemDivider.full,
+            children: [
+              FTile(
+                prefix: const Icon(FIcons.folder),
+                title: const Text('Documents'),
+                subtitle: const Text('Report cards and letters'),
+                details: svc.documents.isNotEmpty ? Text('${svc.documents.length}') : null,
+                suffix: const Icon(FIcons.chevronRight),
+                onPress: () => _push(const DocumentsScreen()),
               ),
-            ),
-          const SizedBox(height: 12),
-        ],
-        if (SchoolDataService.instance.teachers.isNotEmpty) ...[
-          _SectionLabel('Teachers'),
-          for (final t in SchoolDataService.instance.teachers)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 8),
-              child: FTile(
-                prefix: const Icon(FIcons.user),
-                title: Text('${t.firstName} ${t.lastName}'.trim()),
-                subtitle: t.code.isNotEmpty ? Text(t.code) : null,
-                suffix: (t.email?.isNotEmpty ?? false) ? const Icon(FIcons.mail) : null,
-                onPress: (t.email?.isNotEmpty ?? false)
-                    ? () => launchUrl(Uri(scheme: 'mailto', path: t.email))
-                    : null,
+              FTile(
+                prefix: const Icon(FIcons.keyRound),
+                title: const Text('Authenticator'),
+                subtitle: const Text('Two-factor codes'),
+                suffix: const Icon(FIcons.chevronRight),
+                onPress: () => _push(const AuthenticatorVaultScreen()),
               ),
+              FTile(
+                prefix: const Icon(FIcons.settings),
+                title: const Text('Settings'),
+                subtitle: const Text('Appearance, notifications, privacy'),
+                suffix: const Icon(FIcons.chevronRight),
+                onPress: () => _push(const SettingsScreen()),
+              ),
+            ],
+          ),
+          if (hasPlugin) ...[
+            const SizedBox(height: 24),
+            const SectionHeader(icon: FIcons.refreshCw, title: 'Sync'),
+            FTileGroup(
+              divider: FItemDivider.full,
+              children: [
+                FTile(
+                  prefix: _syncing ? const FCircularProgress() : const Icon(FIcons.refreshCw),
+                  title: const Text('Sync now'),
+                  subtitle: Text(_syncMsg ?? 'Fetch fresh data from the school'),
+                  onPress: _syncing ? null : _syncNow,
+                ),
+                FTile(
+                  prefix: Icon(
+                    (_syncError?.isNotEmpty ?? false) ? FIcons.circleAlert : FIcons.circleCheck,
+                    color: (_syncError?.isNotEmpty ?? false) ? Accent.red.color : Accent.green.color,
+                  ),
+                  title: const Text('Last sync'),
+                  subtitle: (_syncError?.isNotEmpty ?? false)
+                      ? Text(_syncError!, style: TextStyle(color: colors.destructive))
+                      : (_syncStatus != null ? Text(_syncStatus!) : null),
+                  details: Text(_lastSync != null ? timeAgo(_lastSync!) : 'Never'),
+                ),
+                if (_version != null)
+                  FTile(
+                    prefix: const Icon(FIcons.info),
+                    title: const Text('Plugin version'),
+                    details: Text(_version!),
+                  ),
+              ],
             ),
-          const SizedBox(height: 12),
+          ],
+          const SizedBox(height: 28),
+          FButton(
+            style: FButtonStyle.outline(),
+            prefix: const Icon(FIcons.logOut),
+            onPress: widget.onSignOut,
+            child: Text(isPrivate ? 'Disconnect school' : 'Sign out'),
+          ),
         ],
-        _SectionLabel('Documents'),
-        Padding(
-          padding: const EdgeInsets.only(bottom: 12),
-          child: FTile(
-            prefix: const Icon(FIcons.folder),
-            title: const Text('Documents'),
-            details: SchoolDataService.instance.documents.isNotEmpty
-                ? Text('${SchoolDataService.instance.documents.length}')
-                : null,
-            suffix: const Icon(FIcons.chevronRight),
-            onPress: () => Navigator.of(context).push(
-                MaterialPageRoute(builder: (_) => const DocumentsScreen())),
-          ),
-        ),
-        _SectionLabel('Plugin'),
-        Padding(
-          padding: const EdgeInsets.only(bottom: 8),
-          child: FTile(
-            prefix: _syncing
-                ? const FCircularProgress()
-                : const Icon(FIcons.refreshCw),
-            title: const Text('Sync now'),
-            subtitle: _syncMsg != null
-                ? Text(_syncMsg!)
-                : const Text('Fetch fresh data from the provider'),
-            onPress: _syncing ? null : _syncNow,
-          ),
-        ),
-        Padding(
-          padding: const EdgeInsets.only(bottom: 8),
-          child: FTile(
-            prefix: Icon(
-              (_syncError?.isNotEmpty ?? false) ? FIcons.circleAlert : FIcons.circleCheck,
-              color: (_syncError?.isNotEmpty ?? false) ? colors.destructive : null,
-            ),
-            title: const Text('Last sync'),
-            subtitle: (_syncError?.isNotEmpty ?? false)
-                ? Text(_syncError!, style: TextStyle(color: colors.destructive))
-                : (_syncStatus != null ? Text(_syncStatus!) : null),
-            details: Text(_lastSync != null ? _fmtSyncTime(_lastSync!) : 'Never'),
-          ),
-        ),
-        Padding(
-          padding: const EdgeInsets.only(bottom: 8),
-          child: FTile(
-            prefix: const Icon(FIcons.info),
-            title: const Text('Version'),
-            suffix: Text(_version ?? '-', style: TextStyle(color: colors.mutedForeground)),
-          ),
-        ),
-        const SizedBox(height: 4),
-        FButton(
-          prefix: const Icon(FIcons.logOut),
-          onPress: widget.onSignOut,
-          child: const Text('Sign out'),
-        ),
-      ],
       ),
     );
-  }
-
-  static String _fmtSyncTime(DateTime t) {
-    final d = DateTime.now().difference(t);
-    if (d.inMinutes < 1) return 'just now';
-    if (d.inMinutes < 60) return '${d.inMinutes}m ago';
-    if (d.inHours < 24) return '${d.inHours}h ago';
-    return '${t.day}.${t.month}.${t.year}';
   }
 
   static String _roleLabel(Roles? r) => switch (r) {
@@ -280,52 +336,46 @@ class _AccountPageState extends State<AccountPage> {
         Roles.administrator => 'Administrator',
         _ => 'Student',
       };
+
+  static IconData _roleIcon(Roles? r) => switch (r) {
+        Roles.teacher => FIcons.graduationCap,
+        Roles.administrator => FIcons.shield,
+        _ => FIcons.backpack,
+      };
 }
 
-class _SectionLabel extends StatelessWidget {
-  final String text;
-  const _SectionLabel(this.text);
+class _InfoTile extends StatelessWidget with FTileMixin {
+  final IconData icon;
+  final Accent accent;
+  final String label;
+  final String? value;
+  const _InfoTile({required this.icon, required this.accent, required this.label, required this.value});
+
   @override
   Widget build(BuildContext context) {
-    final c = context.theme.colors;
-    final t = context.theme.typography;
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(4, 0, 4, 8),
-      child: Text(text.toUpperCase(),
-          style: t.xs.copyWith(color: c.mutedForeground, fontWeight: FontWeight.w600, letterSpacing: 0.5)),
+    final colors = context.theme.colors;
+    final has = value?.isNotEmpty ?? false;
+    return FTile(
+      prefix: Icon(icon, color: has ? accent.color : null),
+      title: Text(label),
+      subtitle: Text(has ? value! : 'Not set', style: has ? null : TextStyle(color: colors.mutedForeground)),
     );
   }
 }
 
-class _InfoTile extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final String? value;
-  const _InfoTile({required this.icon, required this.label, required this.value});
-  @override
-  Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.only(bottom: 8),
-        child: FTile(
-          prefix: Icon(icon),
-          title: Text(label),
-          details: Text((value?.isNotEmpty ?? false) ? value! : '-'),
-        ),
-      );
-}
+class _Initials extends StatelessWidget {
+  final String name;
+  const _Initials({required this.name});
 
-class _Badge extends StatelessWidget {
-  final String text;
-  const _Badge(this.text);
   @override
   Widget build(BuildContext context) {
-    final c = context.theme.colors;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-      decoration: BoxDecoration(
-        color: c.secondary,
-        borderRadius: BorderRadius.circular(6),
-      ),
-      child: Text(text, style: TextStyle(color: c.secondaryForeground, fontWeight: FontWeight.w600, fontSize: 12)),
+    final colors = context.theme.colors;
+    final parts = name.trim().split(RegExp(r'\s+')).where((p) => p.isNotEmpty).toList();
+    final initials = parts.take(2).map((p) => p.characters.first.toUpperCase()).join();
+    return FAvatar.raw(
+      size: 38,
+      child: Text(initials.isEmpty ? '?' : initials,
+          style: TextStyle(color: colors.mutedForeground, fontWeight: FontWeight.w700, fontSize: 13)),
     );
   }
 }

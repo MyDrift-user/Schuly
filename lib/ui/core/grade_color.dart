@@ -1,12 +1,9 @@
 import 'package:flutter/widgets.dart';
 import 'package:forui/forui.dart';
 
-Color gradeColor(BuildContext context, num grade) {
-  final colors = context.theme.colors;
-  if (grade >= 5) return const Color(0xFF22C55E); // green
-  if (grade >= 4) return const Color(0xFFF59E0B); // amber
-  return colors.destructive;
-}
+import 'ui/accents.dart';
+
+Color gradeColor(BuildContext context, num grade) => gradeAccent(grade).color;
 
 bool isGraded(num? score) => score != null && score > 0;
 
@@ -17,28 +14,36 @@ String formatGrade(num grade) {
       : (s.endsWith('0') ? grade.toStringAsFixed(1) : s);
 }
 
+/// A grade in a tinted pill. [large] is for hero placements such as the
+/// exam detail sheet.
 class GradePill extends StatelessWidget {
+  const GradePill(this.score, {super.key, this.large = false});
+
   final num? score;
-  const GradePill(this.score, {super.key});
+  final bool large;
 
   @override
   Widget build(BuildContext context) {
     final colors = context.theme.colors;
-    if (!isGraded(score)) {
-      return Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-        decoration: BoxDecoration(
-          color: colors.muted,
-          borderRadius: BorderRadius.circular(8),
-        ),
-        child: Text('-', style: TextStyle(color: colors.mutedForeground, fontWeight: FontWeight.w700)),
-      );
-    }
-    final c = gradeColor(context, score!);
+    final typography = context.theme.typography;
+    final graded = isGraded(score);
+    final accent = graded ? gradeAccent(score!) : Accent.neutral;
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(color: c.withValues(alpha: 0.18), borderRadius: BorderRadius.circular(8)),
-      child: Text(formatGrade(score!), style: TextStyle(color: c, fontWeight: FontWeight.w700)),
+      padding: large
+          ? const EdgeInsets.symmetric(horizontal: 14, vertical: 6)
+          : const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        border: Border.all(color: graded ? accent.color.withValues(alpha: 0.5) : colors.border, width: large ? 1.5 : 1),
+        borderRadius: BorderRadius.circular(large ? 12 : 8),
+      ),
+      child: Text(
+        graded ? formatGrade(score!) : '-',
+        style: (large ? typography.xl2 : typography.sm).copyWith(
+          color: graded ? accent.color : colors.mutedForeground,
+          fontWeight: FontWeight.w700,
+          fontFeatures: const [FontFeature.tabularFigures()],
+        ),
+      ),
     );
   }
 }

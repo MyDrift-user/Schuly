@@ -98,9 +98,10 @@ class _AddTotpScreenState extends State<AddTotpScreen> {
           FHeaderAction.back(onPress: () => Navigator.of(context).pop()),
         ],
       ),
+      childPad: false,
       child: LayoutBuilder(
         builder: (context, constraints) => SingleChildScrollView(
-          padding: EdgeInsets.only(bottom: MediaQuery.viewPaddingOf(context).bottom),
+          padding: EdgeInsets.fromLTRB(16, 8, 16, 24 + MediaQuery.viewPaddingOf(context).bottom),
           child: ConstrainedBox(
             constraints: BoxConstraints(minHeight: constraints.maxHeight),
             child: IntrinsicHeight(
@@ -109,6 +110,12 @@ class _AddTotpScreenState extends State<AddTotpScreen> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 spacing: 16,
                 children: [
+                  Center(child: Icon(FIcons.scanQrCode, size: 48, color: colors.mutedForeground)),
+                  Text(
+                    'Scan the QR code your school or service shows when you turn on two-factor authentication.',
+                    textAlign: TextAlign.center,
+                    style: typography.sm.copyWith(color: colors.mutedForeground),
+                  ),
                   FButton(
                     onPress: _busy ? null : _scan,
                     prefix: const Icon(FIcons.scanQrCode),
@@ -155,9 +162,11 @@ class _AddTotpScreenState extends State<AddTotpScreen> {
                     child: Text(_busy ? 'Saving…' : 'Save'),
                   ),
                   if (_error != null)
-                    SelectableText(
-                      _error!,
-                      style: TextStyle(color: colors.destructive),
+                    FAlert(
+                      style: FAlertStyle.destructive(),
+                      icon: const Icon(FIcons.triangleAlert),
+                      title: const Text('That did not work'),
+                      subtitle: Text(_error!),
                     ),
                 ],
               ),

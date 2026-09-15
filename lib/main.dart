@@ -6,6 +6,7 @@ import 'package:forui/forui.dart';
 import 'config/backend_config.dart';
 import 'l10n/app_localizations.dart';
 import 'services/app_mode_service.dart';
+import 'services/demo_data.dart';
 import 'services/firebase_push.dart';
 import 'services/school_data_service.dart';
 import 'services/theme_service.dart';
@@ -18,6 +19,7 @@ Future<void> main() async {
   await AppModeService.instance.load();
   await ThemeService.instance.load();
   await SchoolDataService.instance.loadCached();
+  await DemoData.install();
   runApp(const SchulyApp());
   // Firebase touches disk and the network, so it starts after the first frame
   // and never delays startup.
@@ -42,16 +44,17 @@ class SchulyApp extends StatelessWidget {
           supportedLocales: AppLocalizations.supportedLocales,
           themeMode: ThemeService.instance.mode,
           // ignore: experimental_member_use
-          theme: FThemes.zinc.light.toApproximateMaterialTheme(),
+          theme: ThemeService.instance.accent.light.toApproximateMaterialTheme(),
           // ignore: experimental_member_use
-          darkTheme: FThemes.zinc.dark.toApproximateMaterialTheme(),
+          darkTheme: ThemeService.instance.accent.dark.toApproximateMaterialTheme(),
           builder: (ctx, child) {
             final mode = ThemeService.instance.mode;
             final platformDark =
                 MediaQuery.platformBrightnessOf(ctx) == Brightness.dark;
             final isDark = mode == ThemeMode.dark ||
                 (mode == ThemeMode.system && platformDark);
-            final theme = isDark ? FThemes.zinc.dark : FThemes.zinc.light;
+            final accent = ThemeService.instance.accent;
+            final theme = isDark ? accent.dark : accent.light;
             return FAnimatedTheme(
               data: theme,
               child: FToaster(

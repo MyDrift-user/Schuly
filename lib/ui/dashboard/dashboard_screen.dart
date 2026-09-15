@@ -8,13 +8,16 @@ import '../../services/active_account_service.dart';
 import '../../services/api_client.dart';
 import '../../services/app_mode_service.dart';
 import '../../services/auth_service.dart';
+import '../../services/demo_data.dart';
 import '../../services/private_account_store.dart';
 import '../../services/profile_refresh_requests.dart';
 import '../../services/school_data_service.dart';
+import '../../l10n/app_localizations.dart';
 import '../absences/absences_page.dart';
 import '../account/account_page.dart';
 import '../grades/grades_page.dart';
 import '../home/home_page.dart';
+import '../core/ui/status_view.dart';
 import '../timetable/timetable_page.dart';
 import 'tab_requests.dart';
 import 'widgets/accounts_sidebar.dart';
@@ -117,8 +120,8 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
       final account = await PrivateAccountStore.instance.load();
       if (mounted) {
         setState(() {
-          _userName = account?.displayName;
-          _privateTitle = account?.displayName;
+          _userName = DemoData.enabled ? DemoData.displayName : account?.displayName;
+          _privateTitle = DemoData.enabled ? DemoData.schoolName : account?.displayName;
         });
       }
       await SchoolDataService.instance.refresh();
@@ -173,6 +176,7 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
   @override
   Widget build(BuildContext context) {
     final colors = context.theme.colors;
+    final t = AppLocalizations.of(context)!;
 
     return AnimatedBuilder(
       animation: Listenable.merge([
@@ -198,31 +202,19 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
 
         Widget body = IndexedStack(index: _index, children: pages);
         if (data.error != null && data.me == null) {
-          body = Stack(children: [
-            body,
-            Positioned.fill(
-              child: ColoredBox(
-                color: colors.background,
-                child: Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(24),
-                    child: SelectableText('Failed to load: ${data.error}',
-                        style: TextStyle(color: colors.destructive)),
-                  ),
-                ),
-              ),
+          body = ColoredBox(
+            color: colors.background,
+            child: ErrorView(
+              title: 'Could not load your school data',
+              message: 'Check your connection and try again.',
+              onRetry: data.refresh,
             ),
-          ]);
+          );
         } else if (!data.hasLoaded) {
-          body = Stack(children: [
-            body,
-            Positioned.fill(
-              child: ColoredBox(
-                color: colors.background,
-                child: const Center(child: FCircularProgress()),
-              ),
-            ),
-          ]);
+          body = ColoredBox(
+            color: colors.background,
+            child: const LoadingView(message: 'Loading your school…'),
+          );
         }
 
         return FScaffold(
@@ -230,10 +222,10 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
             title: AppModeService.instance.isPrivate
                 ? (_privateTitle ?? 'Schuly')
                 : (active?.name ?? 'Schuly'),
-            subtitle:
-                AppModeService.instance.isPrivate ? null : active?.fullName,
+            subtitle: AppModeService.instance.isPrivate ? null : active?.fullName,
             pictureUrl: _pictureUrl,
             userName: _userName,
+            syncing: data.loading && data.hasLoaded,
             onAvatar: _openSidebar,
           ),
           footer: SafeArea(
@@ -244,12 +236,12 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
                 if (i != _index) HapticFeedback.selectionClick();
                 setState(() => _index = i);
               },
-              children: const [
-                FBottomNavigationBarItem(icon: Icon(FIcons.house), label: Text('Home')),
-                FBottomNavigationBarItem(icon: Icon(FIcons.calendarDays), label: Text('Timetable')),
-                FBottomNavigationBarItem(icon: Icon(FIcons.chartColumn), label: Text('Grades')),
-                FBottomNavigationBarItem(icon: Icon(FIcons.calendarOff), label: Text('Absences')),
-                FBottomNavigationBarItem(icon: Icon(FIcons.user), label: Text('Account')),
+              children: [
+                FBottomNavigationBarItem(icon: const Icon(FIcons.house), label: Text(t.tabStart)),
+                FBottomNavigationBarItem(icon: const Icon(FIcons.calendarDays), label: Text(t.tabAgenda)),
+                FBottomNavigationBarItem(icon: const Icon(FIcons.chartColumn), label: Text(t.tabGrades)),
+                FBottomNavigationBarItem(icon: const Icon(FIcons.calendarOff), label: Text(t.tabAbsences)),
+                FBottomNavigationBarItem(icon: const Icon(FIcons.circleUser), label: Text(t.tabAccount)),
               ],
             ),
           ),
@@ -266,12 +258,14 @@ class _TopBar extends StatelessWidget {
   final String? subtitle;
   final String? pictureUrl;
   final String? userName;
+  final bool syncing;
   final VoidCallback onAvatar;
   const _TopBar({
     required this.title,
     required this.subtitle,
     required this.pictureUrl,
     required this.userName,
+    required this.syncing,
     required this.onAvatar,
   });
 
@@ -291,11 +285,18 @@ class _TopBar extends StatelessWidget {
             padding: const EdgeInsets.fromLTRB(16, 10, 16, 10),
             child: Row(
               children: [
-                GestureDetector(
-                  onTap: onAvatar,
-                  child: (pictureUrl == null || pictureUrl!.isEmpty)
-                      ? FAvatar.raw(size: 40, child: fallback)
-                      : FAvatar(size: 40, image: NetworkImage(pictureUrl!), fallback: fallback),
+                FTappable(
+                  onPress: onAvatar,
+                  child: Container(
+                    padding: const EdgeInsets.all(2),
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(color: colors.border),
+                    ),
+                    child: (pictureUrl == null || pictureUrl!.isEmpty)
+                        ? FAvatar.raw(size: 38, child: fallback)
+                        : FAvatar(size: 38, image: NetworkImage(pictureUrl!), fallback: fallback),
+                  ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -304,15 +305,19 @@ class _TopBar extends StatelessWidget {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(title,
-                          style: typography.lg.copyWith(fontWeight: FontWeight.w600),
+                          style: typography.base.copyWith(fontWeight: FontWeight.w700),
                           overflow: TextOverflow.ellipsis),
                       if (subtitle?.isNotEmpty ?? false)
                         Text(subtitle!,
-                            style: typography.sm.copyWith(color: colors.mutedForeground),
+                            style: typography.xs.copyWith(color: colors.mutedForeground),
                             overflow: TextOverflow.ellipsis),
                     ],
                   ),
                 ),
+                if (syncing) ...[
+                  const SizedBox(width: 8),
+                  const SizedBox(width: 18, height: 18, child: FCircularProgress()),
+                ],
               ],
             ),
           ),

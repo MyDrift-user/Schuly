@@ -22,6 +22,8 @@
     "apigen:patch": "bun -e \"const f='lib/api/pubspec.yaml';await Bun.write(f,(await Bun.file(f).text()).replace(/sdk: '>=2\\\\.18\\\\.0 <4\\\\.0\\\\.0'/,'sdk: ^3.10.0'))\"",
     "apigen:build": "cd lib/api && dart pub get && dart run build_runner build --delete-conflicting-outputs",
     "icons": "dart run flutter_launcher_icons",
-    "clean": "flutter clean && flutter pub get"
+    "clean": "flutter clean && flutter pub get",
+    "demo": "flutter run --flavor dev --dart-define=SCHULY_DEMO=true",
+    "emulator": "emulator -avd schuly -gpu host -no-boot-anim"
   }
 }
