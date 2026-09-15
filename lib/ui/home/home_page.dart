@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:forui/forui.dart';
 import 'package:schuly_api/schuly_api.dart';
 
+import '../../services/layout_prefs.dart';
 import '../../services/school_data_service.dart';
+import '../authenticator/authenticator_vault_screen.dart';
 import '../core/dates.dart';
 import '../core/grade_color.dart';
 import '../core/ui/accents.dart';
@@ -11,7 +13,9 @@ import '../core/ui/chips.dart';
 import '../core/ui/now_ticker.dart';
 import '../core/ui/section_header.dart';
 import '../core/ui/stat_card.dart';
+import '../customize/customize_sheet.dart';
 import '../dashboard/tab_requests.dart';
+import '../documents/documents_page.dart';
 import '../timetable/day_schedule.dart';
 import '../timetable/entry_style.dart';
 import '../timetable/timeline_row.dart';
@@ -20,7 +24,9 @@ class HomePage extends StatelessWidget {
   const HomePage({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) => ListenableBuilder(listenable: LayoutPrefs.instance, builder: (context, _) => _build(context));
+
+  Widget _build(BuildContext context) {
     final colors = context.theme.colors;
     final typography = context.theme.typography;
     final svc = SchoolDataService.instance;
@@ -69,170 +75,267 @@ class HomePage extends StatelessWidget {
 
     final recentAbsences = svc.absences.toList()..sort((a, b) => b.from.compareTo(a.from));
     final firstName = svc.me?.firstName.trim();
+    final prefs = LayoutPrefs.instance;
 
-    return RefreshIndicator(
-      onRefresh: svc.refresh,
-      child: ListView(
-        physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(4, 0, 4, 16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  firstName == null || firstName.isEmpty ? greeting(DateTime.now()) : '${greeting(DateTime.now())}, $firstName',
-                  style: typography.xl2.copyWith(fontWeight: FontWeight.w800, height: 1.1),
-                ),
-                const SizedBox(height: 4),
-                Text(formatDayLong(today), style: typography.sm.copyWith(color: colors.mutedForeground)),
-              ],
-            ),
-          ),
-          NowTicker(
-            builder: (context, now) {
-              final card = _NowCard(items: buildDaySchedule(todayEntries), now: now);
-              return card.isEmpty(now) ? const SizedBox.shrink() : Padding(padding: const EdgeInsets.only(bottom: 16), child: card);
-            },
-          ),
-          StatRow(children: [
-            StatCard(
+    StatCard? tile(HomeTile t) => switch (t) {
+          HomeTile.average => StatCard(
               icon: FIcons.chartColumn,
               accent: average == null ? Accent.neutral : gradeAccent(average),
               value: average == null ? '-' : formatGrade(average),
               label: 'Average',
               onPress: () => TabRequests.request(DashboardTab.grades),
             ),
-            StatCard(
+          HomeTile.absences => StatCard(
               icon: FIcons.calendarOff,
               value: '${svc.absences.length}',
               label: svc.absences.length == 1 ? 'Absence' : 'Absences',
               onPress: () => TabRequests.request(DashboardTab.absences),
             ),
-            StatCard(
+          HomeTile.holiday => StatCard(
               icon: FIcons.treePalm,
               value: nextHoliday == null ? '-' : _daysUntil(nextHoliday.date),
               label: 'Holidays',
               onPress: () => TabRequests.request(DashboardTab.timetable),
             ),
-          ]),
-          if (todayEntries.isNotEmpty)
-            NowTicker(
-              builder: (context, now) {
-                final items = upcomingItems(buildDaySchedule(todayEntries), now);
-                if (items.isEmpty) return const SizedBox.shrink();
-                return Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    const SizedBox(height: 24),
-                    SectionHeader(
-                      icon: FIcons.calendarDays,
-                      title: 'Today',
-                      actionLabel: 'Timetable',
-                      onAction: () => TabRequests.request(DashboardTab.timetable),
-                    ),
-                    for (var i = 0; i < items.length; i++)
-                      TimelineRow(item: items[i], now: now, isFirst: i == 0, isLast: i == items.length - 1),
-                  ],
-                );
-              },
+          HomeTile.tests => StatCard(
+              icon: FIcons.clipboardList,
+              value: '${upcomingTests.length}',
+              label: upcomingTests.length == 1 ? 'Test soon' : 'Tests soon',
+              onPress: () => TabRequests.request(DashboardTab.timetable),
             ),
-          if (upcomingTests.isNotEmpty) ...[
-            const SizedBox(height: 24),
-            const SectionHeader(icon: FIcons.clipboardList, title: 'Upcoming tests'),
-            FTileGroup(
-              divider: FItemDivider.full,
-              children: [
-                for (final a in upcomingTests.take(4))
-                  FTile(
-                    prefix: DateChip(a.date),
-                    title: Text(a.title.isNotEmpty ? a.title : 'Test'),
-                    subtitle: Text([formatTime(a.date), if (a.place?.isNotEmpty ?? false) a.place!].join(' · ')),
-                    details: _Countdown(a.date),
-                  ),
-              ],
+          HomeTile.lessons => StatCard(
+              icon: FIcons.calendarDays,
+              value: '${todayEntries.where((a) => a.entryType == AgendaEntryType.lesson).length}',
+              label: 'Lessons today',
+              onPress: () => TabRequests.request(DashboardTab.timetable),
             ),
-          ],
-          const SizedBox(height: 24),
-          SectionHeader(
-            icon: FIcons.chartColumn,
-            title: 'Latest grades',
-            actionLabel: 'All grades',
-            onAction: () => TabRequests.request(DashboardTab.grades),
-          ),
-          if (latestGrades.isEmpty)
-            const EmptyState(
-              compact: true,
-              icon: FIcons.sparkles,
-              title: 'No grades yet',
-              message: 'New grades show up here as soon as they are entered.',
-            )
-          else
-            FTileGroup(
-              divider: FItemDivider.full,
-              children: [
-                for (final entry in latestGrades)
-                  FTile(
-                    prefix: SubjectChip(classNameById[examById[entry.key]?.classId] ?? '?'),
-                    title: Text(examById[entry.key]?.name ?? 'Exam'),
-                    subtitle: Text([
-                      if (classNameById[examById[entry.key]?.classId]?.isNotEmpty ?? false)
-                        classNameById[examById[entry.key]?.classId]!,
-                      if (examById[entry.key]?.date != null) formatDate(fromApiDate(examById[entry.key]!.date!)),
-                    ].join(' · ')),
-                    suffix: GradePill(entry.value.score),
-                    onPress: () => TabRequests.request(DashboardTab.grades),
-                  ),
-              ],
+          HomeTile.documents => StatCard(
+              icon: FIcons.folder,
+              value: '${svc.documents.length}',
+              label: 'Documents',
+              onPress: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const DocumentsScreen())),
             ),
-          if (nextHoliday != null) ...[
-            const SizedBox(height: 24),
-            const SectionHeader(icon: FIcons.treePalm, title: 'Next holiday'),
-            FTileGroup(
-              divider: FItemDivider.full,
-              children: [
-                FTile(
-                  prefix: DateChip(nextHoliday.date),
-                  title: Text(nextHoliday.title.isNotEmpty ? nextHoliday.title : 'Holiday'),
-                  subtitle: Text(formatDayRange(nextHoliday.date, nextHoliday.endDate)),
-                  details: _Countdown(nextHoliday.date),
+          HomeTile.authenticator => StatCard(
+              icon: FIcons.keyRound,
+              value: '2FA',
+              label: 'Authenticator',
+              onPress: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const AuthenticatorVaultScreen())),
+            ),
+        };
+
+    List<Widget> section(HomeSection s) => switch (s) {
+          HomeSection.hero => [
+              NowTicker(
+                builder: (context, now) {
+                  final card = _NowCard(items: buildDaySchedule(todayEntries), now: now);
+                  return card.isEmpty(now) ? const SizedBox.shrink() : Padding(padding: const EdgeInsets.only(bottom: 16), child: card);
+                },
+              ),
+            ],
+          HomeSection.tiles => [
+              if (prefs.homeTiles.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 16),
+                  child: StatRow(children: [for (final t in prefs.homeTiles) ?tile(t)]),
                 ),
+            ],
+          HomeSection.today => [
+              if (todayEntries.isNotEmpty)
+                NowTicker(
+                  builder: (context, now) {
+                    final items = upcomingItems(buildDaySchedule(todayEntries), now);
+                    if (items.isEmpty) return const SizedBox.shrink();
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 24),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          SectionHeader(
+                            icon: FIcons.calendarDays,
+                            title: 'Today',
+                            actionLabel: 'Timetable',
+                            onAction: () => TabRequests.request(DashboardTab.timetable),
+                          ),
+                          for (var i = 0; i < items.length; i++)
+                            TimelineRow(item: items[i], now: now, isFirst: i == 0, isLast: i == items.length - 1, side: prefs.timeColumn),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+            ],
+          HomeSection.tests => [
+              if (upcomingTests.isNotEmpty) ...[
+                const SectionHeader(icon: FIcons.clipboardList, title: 'Upcoming tests'),
+                FTileGroup(
+                  divider: FItemDivider.full,
+                  children: [
+                    for (final a in upcomingTests.take(4))
+                      FTile(
+                        prefix: DateChip(a.date),
+                        title: Text(a.title.isNotEmpty ? a.title : 'Test'),
+                        subtitle: Text([formatTime(a.date), if (a.place?.isNotEmpty ?? false) a.place!].join(' · ')),
+                        details: _Countdown(a.date),
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 24),
               ],
-            ),
-          ],
-          const SizedBox(height: 24),
-          SectionHeader(
-            icon: FIcons.calendarOff,
-            title: 'Recent absences',
-            actionLabel: 'All',
-            onAction: () => TabRequests.request(DashboardTab.absences),
-          ),
-          if (recentAbsences.isEmpty)
-            const EmptyState(
-              compact: true,
-              icon: FIcons.badgeCheck,
-              accent: Accent.green,
-              title: 'No absences',
-              message: 'Perfect attendance so far.',
-            )
-          else
-            FTileGroup(
-              divider: FItemDivider.full,
+            ],
+          HomeSection.grades => [
+              SectionHeader(
+                icon: FIcons.chartColumn,
+                title: 'Latest grades',
+                actionLabel: 'All grades',
+                onAction: () => TabRequests.request(DashboardTab.grades),
+              ),
+              if (latestGrades.isEmpty)
+                const EmptyState(
+                  compact: true,
+                  icon: FIcons.sparkles,
+                  title: 'No grades yet',
+                  message: 'New grades show up here as soon as they are entered.',
+                )
+              else
+                FTileGroup(
+                  divider: FItemDivider.full,
+                  children: [
+                    for (final entry in latestGrades)
+                      FTile(
+                        prefix: SubjectChip(classNameById[examById[entry.key]?.classId] ?? '?'),
+                        title: Text(examById[entry.key]?.name ?? 'Exam'),
+                        subtitle: Text([
+                          if (classNameById[examById[entry.key]?.classId]?.isNotEmpty ?? false)
+                            classNameById[examById[entry.key]?.classId]!,
+                          if (examById[entry.key]?.date != null) formatDate(fromApiDate(examById[entry.key]!.date!)),
+                        ].join(' · ')),
+                        suffix: GradePill(entry.value.score),
+                        onPress: () => TabRequests.request(DashboardTab.grades),
+                      ),
+                  ],
+                ),
+              const SizedBox(height: 24),
+            ],
+          HomeSection.holiday => [
+              if (nextHoliday != null) ...[
+                const SectionHeader(icon: FIcons.treePalm, title: 'Next holiday'),
+                FTileGroup(
+                  divider: FItemDivider.full,
+                  children: [
+                    FTile(
+                      prefix: DateChip(nextHoliday.date),
+                      title: Text(nextHoliday.title.isNotEmpty ? nextHoliday.title : 'Holiday'),
+                      subtitle: Text(formatDayRange(nextHoliday.date, nextHoliday.endDate)),
+                      details: _Countdown(nextHoliday.date),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 24),
+              ],
+            ],
+          HomeSection.absences => [
+              SectionHeader(
+                icon: FIcons.calendarOff,
+                title: 'Recent absences',
+                actionLabel: 'All',
+                onAction: () => TabRequests.request(DashboardTab.absences),
+              ),
+              if (recentAbsences.isEmpty)
+                const EmptyState(
+                  compact: true,
+                  icon: FIcons.badgeCheck,
+                  accent: Accent.green,
+                  title: 'No absences',
+                  message: 'Perfect attendance so far.',
+                )
+              else
+                FTileGroup(
+                  divider: FItemDivider.full,
+                  children: [
+                    for (final a in recentAbsences.take(3))
+                      FTile(
+                        prefix: DateChip(a.from, accent: a.type == AbsenceType.delay ? Accent.amber : Accent.red),
+                        title: Text(a.reason.isNotEmpty ? a.reason : 'Absence'),
+                        subtitle: Text(formatDayRange(a.from, a.until)),
+                        onPress: () => TabRequests.request(DashboardTab.absences),
+                      ),
+                  ],
+                ),
+              const SizedBox(height: 24),
+            ],
+        };
+
+    return RefreshIndicator(
+      onRefresh: svc.refresh,
+      child: ListView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(4, 0, 0, 16),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                for (final a in recentAbsences.take(3))
-                  FTile(
-                    prefix: DateChip(a.from, accent: a.type == AbsenceType.delay ? Accent.amber : Accent.red),
-                    title: Text(a.reason.isNotEmpty ? a.reason : 'Absence'),
-                    subtitle: Text(formatDayRange(a.from, a.until)),
-                    onPress: () => TabRequests.request(DashboardTab.absences),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        firstName == null || firstName.isEmpty ? greeting(DateTime.now()) : '${greeting(DateTime.now())}, $firstName',
+                        style: typography.xl2.copyWith(fontWeight: FontWeight.w800, height: 1.1),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(formatDayLong(today), style: typography.sm.copyWith(color: colors.mutedForeground)),
+                    ],
                   ),
+                ),
+                CustomizeButton(onPress: () => _customize(context)),
               ],
             ),
+          ),
+          for (final s in prefs.homeOrder)
+            if (!prefs.homeHidden.contains(s)) ...section(s),
         ],
       ),
     );
   }
+
+  Future<void> _customize(BuildContext context) => showCustomizeSheet(
+        context,
+        title: 'Customise home',
+        builder: (context) {
+          final prefs = LayoutPrefs.instance;
+          return [
+            const SectionLabel('Sections'),
+            SectionOrderEditor(
+              order: prefs.homeOrder,
+              hidden: prefs.homeHidden,
+              labelOf: (s) => s.label,
+              onMove: prefs.moveHomeSection,
+              onToggle: prefs.setHomeSectionVisible,
+            ),
+            const SectionLabel('Summary tiles'),
+            for (var i = 0; i < 3; i++)
+              OptionRow<String>(
+                label: 'Tile ${i + 1}',
+                value: i < prefs.homeTiles.length ? prefs.homeTiles[i].name : 'none',
+                items: {'None': 'none', for (final t in HomeTile.values) t.label: t.name},
+                onChange: (name) {
+                  final tiles = List.of(prefs.homeTiles);
+                  final chosen = HomeTile.values.where((t) => t.name == name).firstOrNull;
+                  if (chosen == null) {
+                    if (i < tiles.length) tiles.removeAt(i);
+                  } else if (i < tiles.length) {
+                    tiles[i] = chosen;
+                  } else {
+                    tiles.add(chosen);
+                  }
+                  prefs.setHomeTiles(tiles);
+                },
+              ),
+          ];
+        },
+      );
 
   static String _daysUntil(DateTime d) {
     final days = daysBetween(today, d);

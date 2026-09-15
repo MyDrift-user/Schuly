@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:forui/forui.dart';
 import 'package:schuly_api/schuly_api.dart';
 
+import '../../services/layout_prefs.dart';
 import '../../services/school_data_service.dart';
+import '../customize/customize_sheet.dart';
 import '../core/dates.dart';
 import '../core/grade_color.dart';
 import '../core/ui/accents.dart';
@@ -39,7 +41,9 @@ class _GradesPageState extends State<GradesPage> {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) => ListenableBuilder(listenable: LayoutPrefs.instance, builder: (context, _) => _build(context));
+
+  Widget _build(BuildContext context) {
     final typography = context.theme.typography;
     final svc = SchoolDataService.instance;
     final myGrades = svc.myGradesByExam;
@@ -131,7 +135,7 @@ class _GradesPageState extends State<GradesPage> {
         padding: const EdgeInsets.only(top: 12, bottom: 32),
         children: [
           Padding(
-            padding: const EdgeInsets.fromLTRB(20, 0, 16, 4),
+            padding: const EdgeInsets.fromLTRB(20, 0, 8, 4),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
@@ -144,9 +148,11 @@ class _GradesPageState extends State<GradesPage> {
                       items: {for (final k in periods) _periodLabel(k): k},
                     ),
                   ),
+                CustomizeButton(onPress: () => _customize(context)),
               ],
             ),
           ),
+          if (LayoutPrefs.instance.gradesTiles)
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
             child: StatRow(children: [
@@ -184,6 +190,14 @@ class _GradesPageState extends State<GradesPage> {
     );
   }
 }
+
+Future<void> _customize(BuildContext context) => showCustomizeSheet(
+      context,
+      title: 'Customise grades',
+      builder: (context) => [
+        SwitchRow(label: 'Summary tiles', value: LayoutPrefs.instance.gradesTiles, onChange: LayoutPrefs.instance.setGradesTiles),
+      ],
+    );
 
 class _ClassSection extends StatelessWidget {
   final String title;

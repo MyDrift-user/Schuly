@@ -8,6 +8,7 @@ import 'l10n/app_localizations.dart';
 import 'services/app_mode_service.dart';
 import 'services/demo_data.dart';
 import 'services/firebase_push.dart';
+import 'services/layout_prefs.dart';
 import 'services/school_data_service.dart';
 import 'services/theme_service.dart';
 import 'services/toast_service.dart';
@@ -18,6 +19,7 @@ Future<void> main() async {
   await BackendConfig.load();
   await AppModeService.instance.load();
   await ThemeService.instance.load();
+  await LayoutPrefs.instance.load();
   await SchoolDataService.instance.loadCached();
   await DemoData.install();
   runApp(const SchulyApp());

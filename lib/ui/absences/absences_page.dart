@@ -5,7 +5,9 @@ import 'package:schuly_api/schuly_api.dart';
 
 import '../../services/api_client.dart';
 import '../../services/api_time.dart';
+import '../../services/layout_prefs.dart';
 import '../../services/school_data_service.dart';
+import '../customize/customize_sheet.dart';
 import '../core/dates.dart';
 import '../core/ui/accents.dart';
 import '../core/ui/chips.dart';
@@ -17,7 +19,9 @@ class AbsencesPage extends StatelessWidget {
   const AbsencesPage({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) => ListenableBuilder(listenable: LayoutPrefs.instance, builder: (context, _) => _build(context));
+
+  Widget _build(BuildContext context) {
     final typography = context.theme.typography;
     final svc = SchoolDataService.instance;
     final absences = svc.absences.toList()..sort((a, b) => b.from.compareTo(a.from));
@@ -46,9 +50,15 @@ class AbsencesPage extends StatelessWidget {
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 96),
           children: [
             Padding(
-              padding: const EdgeInsets.fromLTRB(4, 0, 4, 12),
-              child: Text('Absences', style: typography.xl2.copyWith(fontWeight: FontWeight.w800)),
+              padding: const EdgeInsets.fromLTRB(4, 0, 0, 12),
+              child: Row(
+                children: [
+                  Expanded(child: Text('Absences', style: typography.xl2.copyWith(fontWeight: FontWeight.w800, height: 1))),
+                  CustomizeButton(onPress: () => _customize(context)),
+                ],
+              ),
             ),
+            if (LayoutPrefs.instance.absencesTiles)
             StatRow(children: [
               StatCard(
                 icon: FIcons.calendarOff,
@@ -90,6 +100,14 @@ class AbsencesPage extends StatelessWidget {
       ),
     );
   }
+
+  Future<void> _customize(BuildContext context) => showCustomizeSheet(
+        context,
+        title: 'Customise absences',
+        builder: (context) => [
+          SwitchRow(label: 'Summary tiles', value: LayoutPrefs.instance.absencesTiles, onChange: LayoutPrefs.instance.setAbsencesTiles),
+        ],
+      );
 
   Future<void> _openForm(BuildContext context, {AbsenceDto? existing}) async {
     final changed = await showFSheet<bool>(

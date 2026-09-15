@@ -3,7 +3,9 @@ import 'package:forui/forui.dart';
 import 'package:schuly_api/schuly_api.dart';
 
 import '../../l10n/app_localizations.dart';
+import '../../services/layout_prefs.dart';
 import '../../services/school_data_service.dart';
+import '../customize/customize_sheet.dart';
 import '../core/dates.dart';
 import '../core/ui/accents.dart';
 import '../core/ui/empty_state.dart';
@@ -57,7 +59,9 @@ class _TimetablePageState extends State<TimetablePage> {
       });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) => ListenableBuilder(listenable: LayoutPrefs.instance, builder: (context, _) => _build(context));
+
+  Widget _build(BuildContext context) {
     final colors = context.theme.colors;
     final typography = context.theme.typography;
     final t = AppLocalizations.of(context)!;
@@ -84,50 +88,56 @@ class _TimetablePageState extends State<TimetablePage> {
       return '$counts · ${formatHm(first)} - ${formatHm(last)}';
     }
 
+    final prefs = LayoutPrefs.instance;
+    final strip = Padding(
+      padding: const EdgeInsets.only(top: 8, bottom: 4),
+      child: DayStrip(
+        selected: selected,
+        start: DateTime(now.year - 1),
+        end: DateTime(now.year + 2),
+        marked: {for (final a in svc.agenda) if (a.entryType != AgendaEntryType.holiday) dayOf(a.date)},
+        onSelect: (d) => setState(() {
+          _userPicked = true;
+          _selected = d;
+        }),
+      ),
+    );
+    final titleRow = Padding(
+      padding: const EdgeInsets.fromLTRB(20, 8, 8, 8),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  isToday ? 'Today' : formatDayLong(selected),
+                  style: typography.lg.copyWith(fontWeight: FontWeight.w700),
+                  overflow: TextOverflow.ellipsis,
+                ),
+                Text(summary(), style: typography.sm.copyWith(color: colors.mutedForeground)),
+              ],
+            ),
+          ),
+          if (!isToday)
+            FButton(
+              style: FButtonStyle.outline(),
+              mainAxisSize: MainAxisSize.min,
+              prefix: const Icon(FIcons.locate),
+              onPress: _jumpToToday,
+              child: const Text('Today'),
+            ),
+          CustomizeButton(onPress: _customize),
+        ],
+      ),
+    );
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Padding(
-          padding: const EdgeInsets.only(top: 8, bottom: 4),
-          child: DayStrip(
-            selected: selected,
-            start: DateTime(now.year - 1),
-            end: DateTime(now.year + 2),
-            marked: {for (final a in svc.agenda) if (a.entryType != AgendaEntryType.holiday) dayOf(a.date)},
-            onSelect: (d) => setState(() {
-              _userPicked = true;
-              _selected = d;
-            }),
-          ),
-        ),
-        Padding(
-          padding: const EdgeInsets.fromLTRB(20, 8, 16, 8),
-          child: Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      isToday ? 'Today' : formatDayLong(selected),
-                      style: typography.lg.copyWith(fontWeight: FontWeight.w700),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    Text(summary(), style: typography.sm.copyWith(color: colors.mutedForeground)),
-                  ],
-                ),
-              ),
-              if (!isToday)
-                FButton(
-                  style: FButtonStyle.outline(),
-                  mainAxisSize: MainAxisSize.min,
-                  prefix: const Icon(FIcons.locate),
-                  onPress: _jumpToToday,
-                  child: const Text('Today'),
-                ),
-            ],
-          ),
-        ),
+        if (prefs.dayStrip == DayStripPosition.top) strip,
+        titleRow,
+        if (prefs.dayStrip == DayStripPosition.belowTitle) strip,
         Expanded(
           child: RefreshIndicator(
             onRefresh: svc.refresh,
@@ -161,14 +171,40 @@ class _TimetablePageState extends State<TimetablePage> {
                         padding: const EdgeInsets.fromLTRB(8, 4, 16, 24),
                         children: [
                           for (var i = 0; i < items.length; i++)
-                            TimelineRow(item: items[i], now: now, isFirst: i == 0, isLast: i == items.length - 1, dimPast: dayRunning),
+                            TimelineRow(item: items[i], now: now, isFirst: i == 0, isLast: i == items.length - 1, dimPast: dayRunning, side: prefs.timeColumn),
                         ],
                       );
                     },
                   ),
           ),
         ),
+        if (prefs.dayStrip == DayStripPosition.bottom) ...[
+          FDivider(style: (s) => s.copyWith(padding: EdgeInsets.zero)),
+          strip,
+        ],
       ],
     );
   }
+
+  Future<void> _customize() => showCustomizeSheet(
+        context,
+        title: 'Customise timetable',
+        builder: (context) {
+          final prefs = LayoutPrefs.instance;
+          return [
+            OptionRow<TimeColumnSide>(
+              label: 'Time column',
+              value: prefs.timeColumn,
+              items: {for (final v in TimeColumnSide.values) v.label: v},
+              onChange: prefs.setTimeColumn,
+            ),
+            OptionRow<DayStripPosition>(
+              label: 'Day picker',
+              value: prefs.dayStrip,
+              items: {for (final v in DayStripPosition.values) v.label: v},
+              onChange: prefs.setDayStrip,
+            ),
+          ];
+        },
+      );
 }
