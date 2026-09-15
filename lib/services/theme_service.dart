@@ -59,9 +59,25 @@ FThemeData _neutralFields(FThemeData theme) {
     );
   }
 
+  final itemText = FWidgetStateMap({
+    WidgetState.disabled: theme.typography.sm.copyWith(color: colors.disable(colors.foreground)),
+    WidgetState.any: theme.typography.sm.copyWith(color: colors.foreground),
+  });
+
   return theme.copyWith(
     textFieldStyle: neutral,
-    selectStyle: (s) => s.copyWith(selectFieldStyle: neutral, iconStyle: s.iconStyle.copyWith(color: colors.primary)),
+    selectStyle: (s) => s.copyWith(
+      selectFieldStyle: neutral,
+      iconStyle: s.iconStyle.copyWith(color: colors.primary),
+      contentStyle: (c) => c.copyWith(
+        sectionStyle: (section) => section.copyWith(
+          itemStyle: (item) => item.copyWith(
+            contentStyle: (content) => content.copyWith(titleTextStyle: itemText),
+            rawItemContentStyle: (raw) => raw.copyWith(childTextStyle: itemText),
+          ),
+        ),
+      ),
+    ),
     dateFieldStyle: (s) => s.copyWith(textFieldStyle: neutral),
   );
 }
