@@ -260,14 +260,7 @@ class _TopBar extends StatelessWidget {
   final String? userName;
   final bool syncing;
   final VoidCallback onAvatar;
-  const _TopBar({
-    required this.title,
-    required this.subtitle,
-    required this.pictureUrl,
-    required this.userName,
-    required this.syncing,
-    required this.onAvatar,
-  });
+  const _TopBar({required this.title, required this.subtitle, required this.pictureUrl, required this.userName, required this.syncing, required this.onAvatar});
 
   @override
   Widget build(BuildContext context) {

@@ -13,11 +13,7 @@ class OnboardingScreen extends StatefulWidget {
   final Future<void> Function() onChooseAccount;
   final Future<void> Function() onChoosePrivate;
 
-  const OnboardingScreen({
-    super.key,
-    required this.onChooseAccount,
-    required this.onChoosePrivate,
-  });
+  const OnboardingScreen({super.key, required this.onChooseAccount, required this.onChoosePrivate});
 
   @override
   State<OnboardingScreen> createState() => _OnboardingScreenState();
@@ -248,12 +244,7 @@ class _IntroPage extends StatelessWidget {
   final String title;
   final String body;
 
-  const _IntroPage({
-    this.icon,
-    this.asset,
-    required this.title,
-    required this.body,
-  }) : assert(icon != null || asset != null, 'provide an icon or an asset');
+  const _IntroPage({this.icon, this.asset, required this.title, required this.body}) : assert(icon != null || asset != null, 'provide an icon or an asset');
 
   @override
   Widget build(BuildContext context) {
@@ -318,13 +309,7 @@ class _ServerPage extends StatelessWidget {
   final String? okMessage;
   final ValueChanged<_Server> onSelect;
 
-  const _ServerPage({
-    required this.selected,
-    required this.urlController,
-    required this.error,
-    required this.okMessage,
-    required this.onSelect,
-  });
+  const _ServerPage({required this.selected, required this.urlController, required this.error, required this.okMessage, required this.onSelect});
 
   @override
   Widget build(BuildContext context) {
@@ -478,14 +463,7 @@ class _ModeCard extends StatelessWidget {
   final bool selected;
   final VoidCallback? onTap;
 
-  const _ModeCard({
-    required this.icon,
-    required this.title,
-    required this.body,
-    this.tag,
-    this.selected = false,
-    this.onTap,
-  });
+  const _ModeCard({required this.icon, required this.title, required this.body, this.tag, this.selected = false, this.onTap});
 
   @override
   Widget build(BuildContext context) {

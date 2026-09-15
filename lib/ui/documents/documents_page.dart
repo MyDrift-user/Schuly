@@ -153,12 +153,7 @@ class _FolderSection extends StatefulWidget {
   final List<StudentDocumentDto> files;
   final String? downloadingId;
   final Future<void> Function(StudentDocumentDto) onOpen;
-  const _FolderSection({
-    required this.name,
-    required this.files,
-    required this.downloadingId,
-    required this.onOpen,
-  });
+  const _FolderSection({required this.name, required this.files, required this.downloadingId, required this.onOpen});
 
   @override
   State<_FolderSection> createState() => _FolderSectionState();

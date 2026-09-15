@@ -23,12 +23,7 @@ class AccountPage extends StatefulWidget {
   final String? pictureUrl;
   final String? userName;
   final VoidCallback onSignOut;
-  const AccountPage({
-    super.key,
-    required this.pictureUrl,
-    required this.userName,
-    required this.onSignOut,
-  });
+  const AccountPage({super.key, required this.pictureUrl, required this.userName, required this.onSignOut});
 
   @override
   State<AccountPage> createState() => _AccountPageState();

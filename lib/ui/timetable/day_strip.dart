@@ -6,14 +6,7 @@ import '../core/dates.dart';
 
 /// Horizontal day picker that keeps the selected day centred.
 class DayStrip extends StatefulWidget {
-  const DayStrip({
-    super.key,
-    required this.selected,
-    required this.onSelect,
-    required this.start,
-    required this.end,
-    this.marked = const {},
-  });
+  const DayStrip({super.key, required this.selected, required this.onSelect, required this.start, required this.end, this.marked = const {}});
 
   final DateTime selected;
   final ValueChanged<DateTime> onSelect;

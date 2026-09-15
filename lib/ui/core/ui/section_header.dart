@@ -3,14 +3,7 @@ import 'package:forui/forui.dart';
 
 /// Section title with a leading icon and an optional trailing action.
 class SectionHeader extends StatelessWidget {
-  const SectionHeader({
-    super.key,
-    required this.title,
-    this.icon,
-    this.trailing,
-    this.actionLabel,
-    this.onAction,
-  });
+  const SectionHeader({super.key, required this.title, this.icon, this.trailing, this.actionLabel, this.onAction});
 
   final String title;
   final IconData? icon;

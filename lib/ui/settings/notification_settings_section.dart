@@ -107,14 +107,7 @@ class _PreferenceTile extends StatelessWidget with FTileMixin {
   final String? subtitle;
   final bool value;
   final ValueChanged<bool> onChange;
-  const _PreferenceTile({
-    required this.icon,
-    required this.accent,
-    required this.title,
-    this.subtitle,
-    required this.value,
-    required this.onChange,
-  });
+  const _PreferenceTile({required this.icon, required this.accent, required this.title, this.subtitle, required this.value, required this.onChange});
 
   @override
   Widget build(BuildContext context) => FTile(

@@ -19,14 +19,7 @@ class AccountsSidebar extends StatelessWidget {
   final String? userEmail;
   final String? pictureUrl;
 
-  const AccountsSidebar({
-    super.key,
-    required this.parentNavigator,
-    this.onSignOut,
-    this.userName,
-    this.userEmail,
-    this.pictureUrl,
-  });
+  const AccountsSidebar({super.key, required this.parentNavigator, this.onSignOut, this.userName, this.userEmail, this.pictureUrl});
 
   Future<void> _confirmRemove(BuildContext context, MySchool school) async {
     final confirmed = await showFDialog<bool>(
@@ -278,13 +271,7 @@ class _IdentityHeader extends StatelessWidget {
   }
 }
 
-Future<void> openAccountsSidebar(
-  BuildContext context, {
-  VoidCallback? onSignOut,
-  String? userName,
-  String? userEmail,
-  String? pictureUrl,
-}) {
+Future<void> openAccountsSidebar(BuildContext context, { VoidCallback? onSignOut, String? userName, String? userEmail, String? pictureUrl}) {
   final parentNavigator = Navigator.of(context);
   return showFSheet<void>(
     context: context,

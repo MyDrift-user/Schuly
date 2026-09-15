@@ -5,15 +5,7 @@ import 'accents.dart';
 
 /// Friendly placeholder for a list with nothing in it.
 class EmptyState extends StatelessWidget {
-  const EmptyState({
-    super.key,
-    required this.icon,
-    required this.title,
-    this.message,
-    this.accent = Accent.neutral,
-    this.action,
-    this.compact = false,
-  });
+  const EmptyState({super.key, required this.icon, required this.title, this.message, this.accent = Accent.neutral, this.action, this.compact = false});
 
   final IconData icon;
   final String title;

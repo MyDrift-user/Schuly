@@ -5,14 +5,7 @@ import 'accents.dart';
 
 /// A compact number-with-label card, meant to sit in a [StatRow].
 class StatCard extends StatelessWidget {
-  const StatCard({
-    super.key,
-    required this.icon,
-    required this.value,
-    required this.label,
-    this.accent = Accent.neutral,
-    this.onPress,
-  });
+  const StatCard({super.key, required this.icon, required this.value, required this.label, this.accent = Accent.neutral, this.onPress});
 
   final IconData icon;
   final String value;

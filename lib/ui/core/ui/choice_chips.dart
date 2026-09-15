@@ -3,13 +3,7 @@ import 'package:forui/forui.dart';
 
 /// A horizontally scrolling row of pill toggles with a single selection.
 class ChoiceChips<T> extends StatelessWidget {
-  const ChoiceChips({
-    super.key,
-    required this.items,
-    required this.selected,
-    required this.onSelect,
-    this.padding = const EdgeInsets.symmetric(horizontal: 16),
-  });
+  const ChoiceChips({super.key, required this.items, required this.selected, required this.onSelect, this.padding = const EdgeInsets.symmetric(horizontal: 16)});
 
   final Map<T, String> items;
   final T selected;

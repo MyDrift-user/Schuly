@@ -28,12 +28,7 @@ class LoadingView extends StatelessWidget {
 }
 
 class ErrorView extends StatelessWidget {
-  const ErrorView({
-    super.key,
-    required this.message,
-    this.title = 'Something went wrong',
-    this.onRetry,
-  });
+  const ErrorView({super.key, required this.message, this.title = 'Something went wrong', this.onRetry});
 
   final String title;
   final String message;

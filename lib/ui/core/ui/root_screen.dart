@@ -165,14 +165,7 @@ class _SignInLanding extends StatelessWidget {
   final Future<void> Function() onConnectPrivate;
   final ValueChanged<AppMode> onSwitchMode;
 
-  const _SignInLanding({
-    required this.busy,
-    required this.error,
-    required this.isPrivate,
-    required this.onSignIn,
-    required this.onConnectPrivate,
-    required this.onSwitchMode,
-  });
+  const _SignInLanding({required this.busy, required this.error, required this.isPrivate, required this.onSignIn, required this.onConnectPrivate, required this.onSwitchMode});
 
   @override
   Widget build(BuildContext context) {

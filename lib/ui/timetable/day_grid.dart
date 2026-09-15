@@ -33,7 +33,7 @@ class DayGrid extends StatelessWidget {
     final first = lessons.first.start;
     final last = lessons.map((l) => l.end).reduce((a, b) => a.isAfter(b) ? a : b);
     final gridStart = DateTime(first.year, first.month, first.day, first.hour);
-    final gridEnd = DateTime(last.year, last.month, last.day, last.hour + 1);
+    final gridEnd = DateTime(last.year, last.month, last.day, last.minute == 0 ? last.hour : last.hour + 1);
     final totalMinutes = gridEnd.difference(gridStart).inMinutes;
     double offsetOf(DateTime d) => d.difference(gridStart).inMinutes * _pxPerMinute;
     final isToday = isSameDay(now, gridStart);
@@ -72,9 +72,13 @@ class DayGrid extends StatelessWidget {
                 top: offsetOf(brk.start) + _hourLabelHeight / 2,
                 height: brk.minutes * _pxPerMinute - _hourLabelHeight,
                 child: Center(
-                  child: Text(
-                    brk.isLunch ? t.lunchBreakDuration(brk.minutes) : t.breakDuration(brk.minutes),
-                    style: typography.xs.copyWith(color: colors.mutedForeground),
+                  child: Container(
+                    color: colors.background,
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                    child: Text(
+                      brk.isLunch ? t.lunchBreakDuration(brk.minutes) : t.breakDuration(brk.minutes),
+                      style: typography.xs.copyWith(color: colors.mutedForeground),
+                    ),
                   ),
                 ),
               ),
