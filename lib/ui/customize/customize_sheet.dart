@@ -59,6 +59,7 @@ class _CustomizeSheet extends StatelessWidget {
                   onPress: LayoutPrefs.instance.isDefault ? null : LayoutPrefs.instance.reset,
                   child: const Text('Reset'),
                 ),
+                FButton.icon(style: FButtonStyle.ghost(), onPress: () => Navigator.of(context).pop(), child: const Icon(FIcons.x)),
               ],
             ),
             const SizedBox(height: 12),
