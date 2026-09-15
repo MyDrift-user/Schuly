@@ -75,6 +75,23 @@ List<DayItem> buildDaySchedule(List<AgendaEntryDto> entries, {bool withBreaks = 
   return items;
 }
 
+/// What is still ahead: the running item and the next lessons, at most
+/// [maxLessons] lessons, with the breaks between them.
+List<DayItem> upcomingItems(List<DayItem> items, DateTime now, {int maxLessons = 3}) {
+  final out = <DayItem>[];
+  var lessons = 0;
+  for (final item in items) {
+    if (!item.end.isAfter(now)) continue;
+    if (item is LessonItem && lessons == maxLessons) break;
+    out.add(item);
+    if (item is LessonItem) lessons++;
+  }
+  while (out.isNotEmpty && out.last is BreakItem) {
+    out.removeLast();
+  }
+  return out;
+}
+
 DayItem? currentItem(List<DayItem> items, DateTime now) {
   for (final item in items) {
     if (item.isCurrentAt(now)) return item;

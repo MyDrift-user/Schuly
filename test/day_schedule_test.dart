@@ -213,4 +213,37 @@ void main() {
       expect(stripShortCode(''), '');
     });
   });
+
+  group('upcomingItems', () {
+    List<DayItem> day() => buildDaySchedule([
+          _entry(date: DateTime(2026, 1, 5, 8), endDate: DateTime(2026, 1, 5, 8, 45)),
+          _entry(date: DateTime(2026, 1, 5, 8, 50), endDate: DateTime(2026, 1, 5, 9, 35)),
+          _entry(date: DateTime(2026, 1, 5, 9, 55), endDate: DateTime(2026, 1, 5, 10, 40)),
+          _entry(date: DateTime(2026, 1, 5, 10, 45), endDate: DateTime(2026, 1, 5, 11, 30)),
+          _entry(date: DateTime(2026, 1, 5, 12, 30), endDate: DateTime(2026, 1, 5, 13, 15)),
+        ]);
+
+    test('drops finished items and caps at three lessons', () {
+      final items = upcomingItems(day(), DateTime(2026, 1, 5, 8, 47));
+      expect(items.whereType<LessonItem>().length, 3);
+      expect(items.first, isA<BreakItem>());
+      expect(items.first.start, DateTime(2026, 1, 5, 8, 45));
+      expect(items.last, isA<LessonItem>());
+      expect(items.last.start, DateTime(2026, 1, 5, 9, 55));
+    });
+
+    test('keeps the running lesson', () {
+      final items = upcomingItems(day(), DateTime(2026, 1, 5, 9));
+      expect(items.first.start, DateTime(2026, 1, 5, 8, 50));
+    });
+
+    test('is empty once the day is over', () {
+      expect(upcomingItems(day(), DateTime(2026, 1, 5, 14)), isEmpty);
+    });
+
+    test('never ends on a break', () {
+      final items = upcomingItems(day(), DateTime(2026, 1, 5, 11, 40), maxLessons: 1);
+      expect(items.single, isA<LessonItem>());
+    });
+  });
 }

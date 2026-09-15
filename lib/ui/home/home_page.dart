@@ -117,27 +117,27 @@ class HomePage extends StatelessWidget {
               onPress: () => TabRequests.request(DashboardTab.timetable),
             ),
           ]),
-          if (todayEntries.isNotEmpty) ...[
-            const SizedBox(height: 24),
-            SectionHeader(
-              icon: FIcons.calendarDays,
-              title: 'Today',
-              actionLabel: 'Timetable',
-              onAction: () => TabRequests.request(DashboardTab.timetable),
-            ),
+          if (todayEntries.isNotEmpty)
             NowTicker(
               builder: (context, now) {
-                final items = buildDaySchedule(todayEntries);
+                final items = upcomingItems(buildDaySchedule(todayEntries), now);
+                if (items.isEmpty) return const SizedBox.shrink();
                 return Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
+                    const SizedBox(height: 24),
+                    SectionHeader(
+                      icon: FIcons.calendarDays,
+                      title: 'Today',
+                      actionLabel: 'Timetable',
+                      onAction: () => TabRequests.request(DashboardTab.timetable),
+                    ),
                     for (var i = 0; i < items.length; i++)
                       TimelineRow(item: items[i], now: now, isLast: i == items.length - 1),
                   ],
                 );
               },
             ),
-          ],
           if (upcomingTests.isNotEmpty) ...[
             const SizedBox(height: 24),
             const SectionHeader(icon: FIcons.clipboardList, title: 'Upcoming tests'),
