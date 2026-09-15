@@ -174,13 +174,6 @@ class _GradesPageState extends State<GradesPage> {
                 myGrades: myGrades,
               ),
             ),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            child: Text(
-              'Averages are weighted by each exam\'s weighting.',
-              style: typography.xs.copyWith(color: colors.mutedForeground),
-            ),
-          ),
         ],
       ),
     );
