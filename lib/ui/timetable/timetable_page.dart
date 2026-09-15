@@ -10,8 +10,7 @@ import '../core/ui/empty_state.dart';
 import '../core/ui/now_ticker.dart';
 import 'day_schedule.dart';
 import 'day_strip.dart';
-import 'break_card.dart';
-import 'lesson_tile.dart';
+import 'timeline_row.dart';
 
 class TimetablePage extends StatefulWidget {
   const TimetablePage({super.key});
@@ -158,18 +157,10 @@ class _TimetablePageState extends State<TimetablePage> {
                       final items = buildDaySchedule(scheduled);
                       return ListView(
                         physics: const AlwaysScrollableScrollPhysics(),
-                        padding: const EdgeInsets.fromLTRB(16, 4, 16, 32),
+                        padding: const EdgeInsets.fromLTRB(8, 4, 16, 24),
                         children: [
-                          FTileGroup(
-                            divider: FItemDivider.full,
-                            children: [
-                              for (final item in items)
-                                switch (item) {
-                                  LessonItem lesson => LessonTile(item: lesson, now: now),
-                                  BreakItem brk => BreakCard(item: brk, now: now),
-                                },
-                            ],
-                          ),
+                          for (var i = 0; i < items.length; i++)
+                            TimelineRow(item: items[i], now: now, isLast: i == items.length - 1),
                         ],
                       );
                     },
