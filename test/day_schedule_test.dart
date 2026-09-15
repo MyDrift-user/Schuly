@@ -229,7 +229,7 @@ void main() {
       expect(items.first, isA<BreakItem>());
       expect(items.first.start, DateTime(2026, 1, 5, 8, 45));
       expect(items.last, isA<LessonItem>());
-      expect(items.last.start, DateTime(2026, 1, 5, 9, 55));
+      expect(items.last.start, DateTime(2026, 1, 5, 10, 45));
     });
 
     test('keeps the running lesson', () {
