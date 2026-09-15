@@ -146,7 +146,7 @@ class HomePage extends StatelessWidget {
               children: [
                 for (final a in upcomingTests.take(4))
                   FTile(
-                    prefix: DateChip(a.date, accent: Accent.violet),
+                    prefix: DateChip(a.date),
                     title: Text(a.title.isNotEmpty ? a.title : 'Test'),
                     subtitle: Text([formatTime(a.date), if (a.place?.isNotEmpty ?? false) a.place!].join(' · ')),
                     details: _Countdown(a.date),
@@ -193,7 +193,7 @@ class HomePage extends StatelessWidget {
               divider: FItemDivider.full,
               children: [
                 FTile(
-                  prefix: DateChip(nextHoliday.date, accent: Accent.orange),
+                  prefix: DateChip(nextHoliday.date),
                   title: Text(nextHoliday.title.isNotEmpty ? nextHoliday.title : 'Holiday'),
                   subtitle: Text(formatDayRange(nextHoliday.date, nextHoliday.endDate)),
                   details: _Countdown(nextHoliday.date),
