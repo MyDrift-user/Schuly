@@ -12,10 +12,9 @@ import '../core/ui/now_ticker.dart';
 import '../core/ui/section_header.dart';
 import '../core/ui/stat_card.dart';
 import '../dashboard/tab_requests.dart';
-import '../timetable/break_card.dart';
 import '../timetable/day_schedule.dart';
 import '../timetable/entry_style.dart';
-import '../timetable/lesson_tile.dart';
+import '../timetable/timeline_row.dart';
 
 class HomePage extends StatelessWidget {
   const HomePage({super.key});
@@ -129,14 +128,11 @@ class HomePage extends StatelessWidget {
             NowTicker(
               builder: (context, now) {
                 final items = buildDaySchedule(todayEntries);
-                return FTileGroup(
-                  divider: FItemDivider.full,
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    for (final item in items)
-                      switch (item) {
-                        LessonItem lesson => LessonTile(item: lesson, now: now),
-                        BreakItem brk => BreakCard(item: brk, now: now),
-                      },
+                    for (var i = 0; i < items.length; i++)
+                      TimelineRow(item: items[i], now: now, isLast: i == items.length - 1),
                   ],
                 );
               },
