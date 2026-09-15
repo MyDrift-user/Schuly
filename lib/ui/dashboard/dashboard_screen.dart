@@ -18,6 +18,7 @@ import '../account/account_page.dart';
 import '../grades/grades_page.dart';
 import '../home/home_page.dart';
 import '../core/ui/status_view.dart';
+import '../customize/layout_editors.dart';
 import '../timetable/timetable_page.dart';
 import 'tab_requests.dart';
 import 'widgets/accounts_sidebar.dart';
@@ -227,6 +228,7 @@ class _DashboardScreenState extends State<DashboardScreen> with WidgetsBindingOb
             userName: _userName,
             syncing: data.loading && data.hasLoaded,
             onAvatar: _openSidebar,
+            onCustomize: _index < 4 ? () => showTabCustomizeSheet(context, _index) : null,
           ),
           footer: SafeArea(
             top: false,
@@ -260,7 +262,8 @@ class _TopBar extends StatelessWidget {
   final String? userName;
   final bool syncing;
   final VoidCallback onAvatar;
-  const _TopBar({required this.title, required this.subtitle, required this.pictureUrl, required this.userName, required this.syncing, required this.onAvatar});
+  final VoidCallback? onCustomize;
+  const _TopBar({required this.title, required this.subtitle, required this.pictureUrl, required this.userName, required this.syncing, required this.onAvatar, this.onCustomize});
 
   @override
   Widget build(BuildContext context) {
@@ -310,6 +313,10 @@ class _TopBar extends StatelessWidget {
                 if (syncing) ...[
                   const SizedBox(width: 8),
                   const SizedBox(width: 18, height: 18, child: FCircularProgress()),
+                ],
+                if (onCustomize != null) ...[
+                  const SizedBox(width: 8),
+                  FButton.icon(style: FButtonStyle.ghost(), onPress: onCustomize, child: const Icon(FIcons.slidersHorizontal)),
                 ],
               ],
             ),
