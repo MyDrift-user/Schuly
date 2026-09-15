@@ -6,7 +6,6 @@ import '../../services/school_data_service.dart';
 import '../core/dates.dart';
 import '../core/grade_color.dart';
 import '../core/ui/accents.dart';
-import '../core/ui/choice_chips.dart';
 import '../core/ui/empty_state.dart';
 import '../core/ui/chips.dart';
 import '../core/ui/section_header.dart';
@@ -132,15 +131,21 @@ class _GradesPageState extends State<GradesPage> {
         padding: const EdgeInsets.only(top: 12, bottom: 32),
         children: [
           Padding(
-            padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
-            child: Text('Grades', style: typography.xl2.copyWith(fontWeight: FontWeight.w800)),
-          ),
-          if (periods.length > 1)
-            ChoiceChips<int>(
-              items: {for (final k in periods) k: _periodLabel(k)},
-              selected: selected,
-              onSelect: (k) => setState(() => _selectedKey = k),
+            padding: const EdgeInsets.fromLTRB(20, 0, 16, 4),
+            child: Row(
+              children: [
+                Expanded(child: Text('Grades', style: typography.xl2.copyWith(fontWeight: FontWeight.w800))),
+                if (periods.length > 1)
+                  SizedBox(
+                    width: 140,
+                    child: FSelect<int>(
+                      control: FSelectControl<int>.lifted(value: selected, onChange: (k) => setState(() => _selectedKey = k ?? selected)),
+                      items: {for (final k in periods) _periodLabel(k): k},
+                    ),
+                  ),
+              ],
             ),
+          ),
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
             child: StatRow(children: [
