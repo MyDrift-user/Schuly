@@ -44,7 +44,12 @@ class TimelineRow extends StatelessWidget {
       ),
     );
 
-    return Stack(
+    // Android's first frame can come with a zero-width viewport, which Forui's
+    // item layout cannot handle; skip that frame.
+    return LayoutBuilder(
+      builder: (context, constraints) => constraints.maxWidth < 120
+          ? const SizedBox.shrink()
+          : Stack(
       children: [
         tile,
         Positioned(
@@ -87,6 +92,7 @@ class TimelineRow extends StatelessWidget {
           ),
         ),
       ],
+    ),
     );
   }
 }
