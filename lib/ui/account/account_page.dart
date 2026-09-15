@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:forui/forui.dart';
 import 'package:schuly_api/schuly_api.dart';
-import 'package:url_launcher/url_launcher.dart';
 
 import '../../config/oidc_config.dart';
 import '../../services/active_account_service.dart';
@@ -11,13 +10,13 @@ import '../../services/app_mode_service.dart';
 import '../../services/school_data_service.dart';
 import '../../services/toast_service.dart';
 import '../authenticator/authenticator_vault_screen.dart';
-import '../classes/class_detail_screen.dart';
 import '../core/dates.dart';
 import '../core/ui/accents.dart';
-import '../core/ui/chips.dart';
 import '../core/ui/section_header.dart';
 import '../documents/documents_page.dart';
 import '../settings/settings_screen.dart';
+import 'classes_screen.dart';
+import 'teachers_screen.dart';
 
 class AccountPage extends StatefulWidget {
   final String? pictureUrl;
@@ -202,66 +201,13 @@ class _AccountPageState extends State<AccountPage> {
               ],
             ),
           ),
-          const SizedBox(height: 24),
-          const SectionHeader(icon: FIcons.idCard, title: 'Profile'),
-          FTileGroup(
-            divider: FItemDivider.full,
-            children: [
-              _InfoTile(icon: FIcons.mail, accent: Accent.blue, label: 'Email', value: me?.email),
-              _InfoTile(icon: FIcons.phone, accent: Accent.green, label: 'Phone', value: me?.phoneNumber),
-              _InfoTile(icon: FIcons.mapPin, accent: Accent.orange, label: 'Address', value: address),
-              _InfoTile(
-                icon: FIcons.cake,
-                accent: Accent.pink,
-                label: 'Birthday',
-                value: me?.birthday == null ? null : formatDate(fromApiDate(me!.birthday!)),
-              ),
-            ],
-          ),
-          if (classes.isNotEmpty) ...[
-            const SizedBox(height: 24),
-            const SectionHeader(icon: FIcons.users, title: 'My classes'),
-            FTileGroup(
-              divider: FItemDivider.full,
-              children: [
-                for (final c in classes)
-                  FTile(
-                    prefix: SubjectChip(c.className),
-                    title: Text(c.className),
-                    suffix: const Icon(FIcons.chevronRight),
-                    onPress: () => _push(ClassDetailScreen(classId: c.classId, title: c.className)),
-                  ),
-              ],
-            ),
-          ],
-          if (svc.teachers.isNotEmpty) ...[
-            const SizedBox(height: 24),
-            const SectionHeader(icon: FIcons.graduationCap, title: 'Teachers'),
-            FTileGroup(
-              divider: FItemDivider.full,
-              children: [
-                for (final t in svc.teachers)
-                  FTile(
-                    prefix: _Initials(name: '${t.firstName} ${t.lastName}'),
-                    title: Text('${t.firstName} ${t.lastName}'.trim()),
-                    subtitle: t.code.isNotEmpty ? Text(t.code) : null,
-                    suffix: (t.email?.isNotEmpty ?? false) ? Icon(FIcons.mail, color: colors.mutedForeground) : null,
-                    onPress: (t.email?.isNotEmpty ?? false)
-                        ? () => launchUrl(Uri(scheme: 'mailto', path: t.email))
-                        : null,
-                  ),
-              ],
-            ),
-          ],
-          const SizedBox(height: 24),
-          const SectionHeader(icon: FIcons.layoutGrid, title: 'More'),
+          const SizedBox(height: 20),
           FTileGroup(
             divider: FItemDivider.full,
             children: [
               FTile(
                 prefix: const Icon(FIcons.folder),
                 title: const Text('Documents'),
-                subtitle: const Text('Report cards and letters'),
                 details: svc.documents.isNotEmpty ? Text('${svc.documents.length}') : null,
                 suffix: const Icon(FIcons.chevronRight),
                 onPress: () => _push(const DocumentsScreen()),
@@ -269,17 +215,50 @@ class _AccountPageState extends State<AccountPage> {
               FTile(
                 prefix: const Icon(FIcons.keyRound),
                 title: const Text('Authenticator'),
-                subtitle: const Text('Two-factor codes'),
                 suffix: const Icon(FIcons.chevronRight),
                 onPress: () => _push(const AuthenticatorVaultScreen()),
               ),
               FTile(
                 prefix: const Icon(FIcons.settings),
                 title: const Text('Settings'),
-                subtitle: const Text('Appearance, notifications, privacy'),
                 suffix: const Icon(FIcons.chevronRight),
                 onPress: () => _push(const SettingsScreen()),
               ),
+            ],
+          ),
+          if (classes.isNotEmpty || svc.teachers.isNotEmpty) ...[
+            const SizedBox(height: 20),
+            FTileGroup(
+              divider: FItemDivider.full,
+              children: [
+                if (classes.isNotEmpty)
+                  FTile(
+                    prefix: const Icon(FIcons.bookOpen),
+                    title: const Text('My classes'),
+                    details: Text('${classes.length}'),
+                    suffix: const Icon(FIcons.chevronRight),
+                    onPress: () => _push(const ClassesScreen()),
+                  ),
+                if (svc.teachers.isNotEmpty)
+                  FTile(
+                    prefix: const Icon(FIcons.graduationCap),
+                    title: const Text('Teachers'),
+                    details: Text('${svc.teachers.length}'),
+                    suffix: const Icon(FIcons.chevronRight),
+                    onPress: () => _push(const TeachersScreen()),
+                  ),
+              ],
+            ),
+          ],
+          const SizedBox(height: 24),
+          const SectionHeader(icon: FIcons.idCard, title: 'Contact details'),
+          FTileGroup(
+            divider: FItemDivider.full,
+            children: [
+              _InfoTile(icon: FIcons.mail, label: 'Email', value: me?.email),
+              _InfoTile(icon: FIcons.phone, label: 'Phone', value: me?.phoneNumber),
+              _InfoTile(icon: FIcons.mapPin, label: 'Address', value: address),
+              _InfoTile(icon: FIcons.cake, label: 'Birthday', value: me?.birthday == null ? null : formatDate(fromApiDate(me!.birthday!))),
             ],
           ),
           if (hasPlugin) ...[
@@ -340,37 +319,20 @@ class _AccountPageState extends State<AccountPage> {
 }
 
 class _InfoTile extends StatelessWidget with FTileMixin {
+  const _InfoTile({required this.icon, required this.label, required this.value});
+
   final IconData icon;
-  final Accent accent;
   final String label;
   final String? value;
-  const _InfoTile({required this.icon, required this.accent, required this.label, required this.value});
 
   @override
   Widget build(BuildContext context) {
     final colors = context.theme.colors;
     final has = value?.isNotEmpty ?? false;
     return FTile(
-      prefix: Icon(icon, color: has ? accent.color : null),
+      prefix: Icon(icon),
       title: Text(label),
       subtitle: Text(has ? value! : 'Not set', style: has ? null : TextStyle(color: colors.mutedForeground)),
-    );
-  }
-}
-
-class _Initials extends StatelessWidget {
-  final String name;
-  const _Initials({required this.name});
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = context.theme.colors;
-    final parts = name.trim().split(RegExp(r'\s+')).where((p) => p.isNotEmpty).toList();
-    final initials = parts.take(2).map((p) => p.characters.first.toUpperCase()).join();
-    return FAvatar.raw(
-      size: 38,
-      child: Text(initials.isEmpty ? '?' : initials,
-          style: TextStyle(color: colors.mutedForeground, fontWeight: FontWeight.w700, fontSize: 13)),
     );
   }
 }
