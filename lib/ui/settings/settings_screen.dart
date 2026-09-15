@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart' show showLicensePage, ThemeMode;
+import 'package:flutter/material.dart' show showLicensePage, ThemeMode, MaterialPageRoute;
 import 'package:flutter/widgets.dart';
 import 'package:forui/forui.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -13,6 +13,7 @@ import '../../services/profile_refresh_requests.dart';
 import '../../services/school_data_service.dart';
 import '../../services/theme_service.dart';
 import '../core/ui/section_header.dart';
+import 'layout_screen.dart';
 import 'notification_settings_section.dart';
 import 'privacy_settings_section.dart';
 
@@ -76,6 +77,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 _AccentPicker(
                   accent: ThemeService.instance.accent,
                   onChange: ThemeService.instance.setAccent,
+                ),
+                const SizedBox(height: 12),
+                FTileGroup(
+                  divider: FItemDivider.full,
+                  children: [
+                    FTile(
+                      prefix: const Icon(FIcons.layoutList),
+                      title: const Text('Layout'),
+                      subtitle: const Text('Sections, tiles and positions per tab'),
+                      suffix: const Icon(FIcons.chevronRight),
+                      onPress: () => Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const LayoutScreen())),
+                    ),
+                  ],
                 ),
               ],
             ),

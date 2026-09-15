@@ -13,7 +13,6 @@ import '../core/ui/chips.dart';
 import '../core/ui/now_ticker.dart';
 import '../core/ui/section_header.dart';
 import '../core/ui/stat_card.dart';
-import '../customize/customize_sheet.dart';
 import '../dashboard/tab_requests.dart';
 import '../documents/documents_page.dart';
 import '../timetable/day_schedule.dart';
@@ -272,7 +271,7 @@ class HomePage extends StatelessWidget {
         padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
         children: [
           Padding(
-            padding: const EdgeInsets.fromLTRB(4, 0, 0, 16),
+            padding: const EdgeInsets.fromLTRB(4, 0, 4, 16),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -289,7 +288,6 @@ class HomePage extends StatelessWidget {
                     ],
                   ),
                 ),
-                CustomizeButton(onPress: () => _customize(context)),
               ],
             ),
           ),
@@ -299,43 +297,6 @@ class HomePage extends StatelessWidget {
       ),
     );
   }
-
-  Future<void> _customize(BuildContext context) => showCustomizeSheet(
-        context,
-        title: 'Customise home',
-        builder: (context) {
-          final prefs = LayoutPrefs.instance;
-          return [
-            const SectionLabel('Sections'),
-            SectionOrderEditor(
-              order: prefs.homeOrder,
-              hidden: prefs.homeHidden,
-              labelOf: (s) => s.label,
-              onMove: prefs.moveHomeSection,
-              onToggle: prefs.setHomeSectionVisible,
-            ),
-            const SectionLabel('Summary tiles'),
-            for (var i = 0; i < 3; i++)
-              OptionRow<String>(
-                label: 'Tile ${i + 1}',
-                value: i < prefs.homeTiles.length ? prefs.homeTiles[i].name : 'none',
-                items: {'None': 'none', for (final t in HomeTile.values) t.label: t.name},
-                onChange: (name) {
-                  final tiles = List.of(prefs.homeTiles);
-                  final chosen = HomeTile.values.where((t) => t.name == name).firstOrNull;
-                  if (chosen == null) {
-                    if (i < tiles.length) tiles.removeAt(i);
-                  } else if (i < tiles.length) {
-                    tiles[i] = chosen;
-                  } else {
-                    tiles.add(chosen);
-                  }
-                  prefs.setHomeTiles(tiles);
-                },
-              ),
-          ];
-        },
-      );
 
   static String _daysUntil(DateTime d) {
     final days = daysBetween(today, d);

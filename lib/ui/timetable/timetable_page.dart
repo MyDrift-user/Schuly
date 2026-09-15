@@ -5,7 +5,6 @@ import 'package:schuly_api/schuly_api.dart';
 import '../../l10n/app_localizations.dart';
 import '../../services/layout_prefs.dart';
 import '../../services/school_data_service.dart';
-import '../customize/customize_sheet.dart';
 import '../core/dates.dart';
 import '../core/ui/accents.dart';
 import '../core/ui/empty_state.dart';
@@ -103,7 +102,7 @@ class _TimetablePageState extends State<TimetablePage> {
       ),
     );
     final titleRow = Padding(
-      padding: const EdgeInsets.fromLTRB(20, 8, 8, 8),
+      padding: const EdgeInsets.fromLTRB(20, 8, 16, 8),
       child: Row(
         children: [
           Expanded(
@@ -127,7 +126,6 @@ class _TimetablePageState extends State<TimetablePage> {
               onPress: _jumpToToday,
               child: const Text('Today'),
             ),
-          CustomizeButton(onPress: _customize),
         ],
       ),
     );
@@ -185,26 +183,4 @@ class _TimetablePageState extends State<TimetablePage> {
       ],
     );
   }
-
-  Future<void> _customize() => showCustomizeSheet(
-        context,
-        title: 'Customise timetable',
-        builder: (context) {
-          final prefs = LayoutPrefs.instance;
-          return [
-            OptionRow<TimeColumnSide>(
-              label: 'Time column',
-              value: prefs.timeColumn,
-              items: {for (final v in TimeColumnSide.values) v.label: v},
-              onChange: prefs.setTimeColumn,
-            ),
-            OptionRow<DayStripPosition>(
-              label: 'Day picker',
-              value: prefs.dayStrip,
-              items: {for (final v in DayStripPosition.values) v.label: v},
-              onChange: prefs.setDayStrip,
-            ),
-          ];
-        },
-      );
 }
