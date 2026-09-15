@@ -205,6 +205,22 @@ class _AccountPageState extends State<AccountPage> {
           FTileGroup(
             divider: FItemDivider.full,
             children: [
+              if (classes.isNotEmpty)
+                FTile(
+                  prefix: const Icon(FIcons.bookOpen),
+                  title: const Text('My classes'),
+                  details: Text('${classes.length}'),
+                  suffix: const Icon(FIcons.chevronRight),
+                  onPress: () => _push(const ClassesScreen()),
+                ),
+              if (svc.teachers.isNotEmpty)
+                FTile(
+                  prefix: const Icon(FIcons.graduationCap),
+                  title: const Text('Teachers'),
+                  details: Text('${svc.teachers.length}'),
+                  suffix: const Icon(FIcons.chevronRight),
+                  onPress: () => _push(const TeachersScreen()),
+                ),
               FTile(
                 prefix: const Icon(FIcons.folder),
                 title: const Text('Documents'),
@@ -212,6 +228,12 @@ class _AccountPageState extends State<AccountPage> {
                 suffix: const Icon(FIcons.chevronRight),
                 onPress: () => _push(const DocumentsScreen()),
               ),
+            ],
+          ),
+          const SizedBox(height: 20),
+          FTileGroup(
+            divider: FItemDivider.full,
+            children: [
               FTile(
                 prefix: const Icon(FIcons.keyRound),
                 title: const Text('Authenticator'),
@@ -226,30 +248,6 @@ class _AccountPageState extends State<AccountPage> {
               ),
             ],
           ),
-          if (classes.isNotEmpty || svc.teachers.isNotEmpty) ...[
-            const SizedBox(height: 20),
-            FTileGroup(
-              divider: FItemDivider.full,
-              children: [
-                if (classes.isNotEmpty)
-                  FTile(
-                    prefix: const Icon(FIcons.bookOpen),
-                    title: const Text('My classes'),
-                    details: Text('${classes.length}'),
-                    suffix: const Icon(FIcons.chevronRight),
-                    onPress: () => _push(const ClassesScreen()),
-                  ),
-                if (svc.teachers.isNotEmpty)
-                  FTile(
-                    prefix: const Icon(FIcons.graduationCap),
-                    title: const Text('Teachers'),
-                    details: Text('${svc.teachers.length}'),
-                    suffix: const Icon(FIcons.chevronRight),
-                    onPress: () => _push(const TeachersScreen()),
-                  ),
-              ],
-            ),
-          ],
           const SizedBox(height: 24),
           const SectionHeader(icon: FIcons.idCard, title: 'Contact details'),
           FTileGroup(

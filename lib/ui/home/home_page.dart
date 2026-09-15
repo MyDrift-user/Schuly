@@ -116,21 +116,14 @@ class HomePage extends StatelessWidget {
               onPress: () => TabRequests.request(DashboardTab.timetable),
             ),
           ]),
-          const SizedBox(height: 24),
-          SectionHeader(
-            icon: FIcons.calendarDays,
-            title: 'Today',
-            actionLabel: 'Timetable',
-            onAction: () => TabRequests.request(DashboardTab.timetable),
-          ),
-          if (todayEntries.isEmpty)
-            EmptyState(
-              compact: true,
-              icon: today.weekday > 5 ? FIcons.sun : FIcons.calendarCheck,
-              title: 'Nothing scheduled today',
-              message: today.weekday > 5 ? 'Enjoy your weekend!' : 'A free day. Make the most of it.',
-            )
-          else
+          if (todayEntries.isNotEmpty) ...[
+            const SizedBox(height: 24),
+            SectionHeader(
+              icon: FIcons.calendarDays,
+              title: 'Today',
+              actionLabel: 'Timetable',
+              onAction: () => TabRequests.request(DashboardTab.timetable),
+            ),
             NowTicker(
               builder: (context, now) {
                 final items = buildDaySchedule(todayEntries);
@@ -146,6 +139,7 @@ class HomePage extends StatelessWidget {
                 );
               },
             ),
+          ],
           if (upcomingTests.isNotEmpty) ...[
             const SizedBox(height: 24),
             const SectionHeader(icon: FIcons.clipboardList, title: 'Upcoming tests'),

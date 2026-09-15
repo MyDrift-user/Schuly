@@ -107,7 +107,6 @@ class _DocumentsScreenState extends State<DocumentsScreen> {
   @override
   Widget build(BuildContext context) {
     final folders = _folders;
-    final total = SchoolDataService.instance.documents.length;
 
     return FScaffold(
       header: FHeader.nested(
@@ -127,12 +126,7 @@ class _DocumentsScreenState extends State<DocumentsScreen> {
                 title: 'No documents yet',
                 message: 'Report cards and letters from your school show up here. Pull down to refresh.',
               )
-            else ...[
-              Padding(
-                padding: const EdgeInsets.fromLTRB(4, 0, 4, 12),
-                child: Text('$total ${total == 1 ? 'document' : 'documents'} in ${folders.length} ${folders.length == 1 ? 'folder' : 'folders'}',
-                    style: context.theme.typography.sm.copyWith(color: context.theme.colors.mutedForeground)),
-              ),
+            else
               for (final folder in folders)
                 _FolderSection(
                   name: folder.key,
@@ -140,7 +134,6 @@ class _DocumentsScreenState extends State<DocumentsScreen> {
                   downloadingId: _downloadingId,
                   onOpen: _openDocument,
                 ),
-            ],
           ],
         ),
       ),
