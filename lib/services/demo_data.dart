@@ -1,5 +1,6 @@
 import 'package:schuly_api/schuly_api.dart';
 
+import '../domain/student_id.dart';
 import 'app_mode_service.dart';
 import 'school_data_service.dart';
 import 'school_data_snapshot.dart';
@@ -19,6 +20,9 @@ class DemoData {
     await AppModeService.instance.setMode(AppMode.private);
     SchoolDataService.instance.seed(snapshot());
   }
+
+  static StudentIdCard studentId(StudentIdCard card) =>
+      card.copyWith(programme: 'Informatikerin EFZ - Fachrichtung Plattformentwicklung', validUntil: Date(2027, 7, 31), signerName: 'Rektorat');
 
   static ClassDto? classDetail(String classId) {
     final svc = SchoolDataService.instance;

@@ -1,3 +1,4 @@
+import 'dart:typed_data';
 import 'dart:ui' show lerpDouble;
 
 import 'package:flutter/widgets.dart';
@@ -6,16 +7,16 @@ import 'package:forui/forui.dart';
 import '../../domain/student_id.dart';
 import '../core/dates.dart';
 
-/// The ID laid out like a physical card so it can be shown at the door.
+/// The ID laid out the way the Schulnetz page does: photo, title, school,
+/// name, date of birth, programme, validity, signature, logos.
 class StudentIdCardView extends StatelessWidget {
-  const StudentIdCardView({super.key, required this.card, this.photoKey, this.nameKey, this.hideShared = false});
+  const StudentIdCardView({super.key, required this.card, this.photoKey, this.hideShared = false});
 
   final StudentIdCard card;
 
-  /// Keys on the photo and the name so the expansion can fly them in from the
-  /// profile tile; [hideShared] blanks them while they are in flight.
+  /// Key on the photo so the expansion can fly it in from the profile tile;
+  /// [hideShared] blanks it while it is in flight.
   final Key? photoKey;
-  final Key? nameKey;
   final bool hideShared;
 
   @override
@@ -23,87 +24,64 @@ class StudentIdCardView extends StatelessWidget {
     final colors = context.theme.colors;
     final typography = context.theme.typography;
     final initial = card.fullName.isNotEmpty ? card.fullName.characters.first.toUpperCase() : '?';
-    final photoUrl = card.photoUrl;
+    final divider = Padding(padding: const EdgeInsets.symmetric(vertical: 10), child: FDivider(style: (s) => s.copyWith(padding: EdgeInsets.zero)));
 
-    Widget field(String label, String? value) => Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(label.toUpperCase(), style: typography.xs.copyWith(color: colors.mutedForeground, fontSize: 10, letterSpacing: 0.6, fontWeight: FontWeight.w600)),
-            const SizedBox(height: 2),
-            Text(value?.isNotEmpty == true ? value! : '-', style: typography.sm.copyWith(fontWeight: FontWeight.w600)),
-          ],
-        );
+    Widget label(String text) => Text(text.toUpperCase(),
+        textAlign: TextAlign.center,
+        style: typography.xs.copyWith(color: colors.mutedForeground, fontSize: 10, letterSpacing: 0.6, fontWeight: FontWeight.w600));
+    Widget value(String? text, {TextStyle? style}) =>
+        Text(text?.isNotEmpty == true ? text! : '-', textAlign: TextAlign.center, style: style ?? typography.sm.copyWith(fontWeight: FontWeight.w600));
+    Widget field(String l, String? v) => Column(children: [label(l), const SizedBox(height: 2), value(v)]);
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Container(
-          color: colors.primary,
-          padding: const EdgeInsets.fromLTRB(20, 18, 20, 18),
-          child: Row(
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(20, 20, 20, 18),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Center(
+            child: Opacity(
+              opacity: hideShared ? 0 : 1,
+              child: StudentIdPhoto(key: photoKey, initial: initial, photo: card.photo, photoUrl: card.photoUrl, width: 96, height: 120, radius: 14),
+            ),
+          ),
+          const SizedBox(height: 12),
+          Text(card.title, textAlign: TextAlign.center, style: typography.lg.copyWith(fontWeight: FontWeight.w800, color: colors.primary)),
+          divider,
+          field(card.schoolLabel, card.schoolName),
+          divider,
+          Row(
             children: [
-              Icon(FIcons.graduationCap, size: 22, color: colors.primaryForeground),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Text(card.schoolName.isEmpty ? 'School' : card.schoolName,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: typography.base.copyWith(color: colors.primaryForeground, fontWeight: FontWeight.w700)),
-              ),
+              Expanded(child: field('Nachname', card.lastName)),
+              const SizedBox(width: 16),
+              Expanded(child: field('Vorname', card.firstName)),
             ],
           ),
-        ),
-        Expanded(
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
+          divider,
+          field('Geburtsdatum', card.birthday == null ? null : formatDate(fromApiDate(card.birthday!))),
+          if (card.programme != null) ...[divider, field('Ausbildung', card.programme)],
+          if (card.validUntil != null) ...[divider, field('Gültig bis', formatDate(fromApiDate(card.validUntil!)))],
+          for (final (l, v) in card.extras) ...[divider, field(l, v)],
+          if (card.signerName != null) ...[
+            divider,
+            if (card.signature != null) Center(child: Image.memory(card.signature!, height: 56, fit: BoxFit.contain)),
+            const SizedBox(height: 4),
+            label(card.signerName!),
+          ],
+          if (card.logos.isNotEmpty) ...[
+            divider,
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Opacity(
-                      opacity: hideShared ? 0 : 1,
-                      child: StudentIdPhoto(key: photoKey, initial: initial, photoUrl: photoUrl, width: 96, height: 120, radius: 10),
-                    ),
-                    const SizedBox(width: 16),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Opacity(opacity: hideShared ? 0 : 1, child: Text(card.fullName, key: nameKey, style: typography.lg.copyWith(fontWeight: FontWeight.w800, height: 1.1))),
-                          const SizedBox(height: 12),
-                          field('Class', card.className),
-                          const SizedBox(height: 10),
-                          field('Date of birth', card.birthday == null ? null : formatDate(fromApiDate(card.birthday!))),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-                const Spacer(),
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    Expanded(child: field('Student number', card.number)),
-                    const SizedBox(width: 12),
-                    Expanded(child: field('Valid until', card.validUntil == null ? null : formatDate(fromApiDate(card.validUntil!)))),
-                  ],
-                ),
-                const SizedBox(height: 14),
-                SizedBox(
-                  height: 56,
-                  child: CustomPaint(painter: _BarcodePainter(seed: card.number ?? card.fullName, color: card.number == null ? colors.border : colors.foreground)),
-                ),
-                if (card.number != null) ...[
-                  const SizedBox(height: 4),
-                  Center(child: Text(card.number!, style: typography.xs.copyWith(letterSpacing: 2, fontFeatures: const [FontFeature.tabularFigures()]))),
+                for (final (i, logo) in card.logos.indexed) ...[
+                  if (i > 0) const SizedBox(width: 20),
+                  Image.memory(logo, height: 44, fit: BoxFit.contain),
                 ],
               ],
             ),
-          ),
-        ),
-      ],
+          ],
+        ],
+      ),
     );
   }
 }
@@ -111,9 +89,10 @@ class StudentIdCardView extends StatelessWidget {
 /// The photo slot, shared between the tile's avatar and the card, so the same
 /// widget can be drawn at any size in between.
 class StudentIdPhoto extends StatelessWidget {
-  const StudentIdPhoto({super.key, required this.initial, required this.photoUrl, required this.width, required this.height, required this.radius, this.fontSize = 34});
+  const StudentIdPhoto({super.key, required this.initial, this.photo, this.photoUrl, required this.width, required this.height, required this.radius, this.fontSize = 34});
 
   final String initial;
+  final Uint8List? photo;
   final String? photoUrl;
   final double width;
   final double height;
@@ -129,52 +108,22 @@ class StudentIdPhoto extends StatelessWidget {
       height: height,
       clipBehavior: Clip.antiAlias,
       decoration: BoxDecoration(color: colors.muted, borderRadius: BorderRadius.circular(radius), border: Border.all(color: colors.border)),
-      child: photoUrl == null || photoUrl!.isEmpty
-          ? Center(child: Text(initial, style: typography.xl3.copyWith(fontSize: fontSize, color: colors.mutedForeground, fontWeight: FontWeight.w700)))
-          : Image.network(photoUrl!, fit: BoxFit.cover),
+      child: photo != null
+          ? Image.memory(photo!, fit: BoxFit.cover)
+          : photoUrl == null || photoUrl!.isEmpty
+              ? Center(child: Text(initial, style: typography.xl3.copyWith(fontSize: fontSize, color: colors.mutedForeground, fontWeight: FontWeight.w700)))
+              : Image.network(photoUrl!, fit: BoxFit.cover),
     );
   }
-}
-
-/// Bars derived from the number so the card looks complete; replaced by the
-/// real code once the school connection provides one.
-class _BarcodePainter extends CustomPainter {
-  const _BarcodePainter({required this.seed, required this.color});
-
-  final String seed;
-  final Color color;
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()..color = color;
-    var h = 7;
-    for (final c in seed.codeUnits) {
-      h = (h * 31 + c) & 0x7fffffff;
-    }
-    const bars = 60;
-    final unit = size.width / (bars * 1.5);
-    var x = 0.0;
-    for (var i = 0; i < bars; i++) {
-      h = (h * 1103515245 + 12345) & 0x7fffffff;
-      final w = unit * (1 + (h >> 4) % 3);
-      if (i.isEven) canvas.drawRect(Rect.fromLTWH(x, 0, w, size.height), paint);
-      x += w;
-      if (x >= size.width) break;
-    }
-  }
-
-  @override
-  bool shouldRepaint(_BarcodePainter old) => old.seed != seed || old.color != color;
 }
 
 /// Where the shared pieces of the profile tile sit, in global coordinates,
 /// captured when the expansion starts.
 class TileGeometry {
-  const TileGeometry({required this.tile, required this.avatar, required this.name});
+  const TileGeometry({required this.tile, required this.avatar});
 
   final Rect tile;
   final Rect avatar;
-  final Rect name;
 }
 
 /// The profile tile growing into the full card, on top of everything, driven
@@ -203,9 +152,8 @@ class StudentIdOverlay extends StatefulWidget {
 class _StudentIdOverlayState extends State<StudentIdOverlay> {
   final _measureKey = GlobalKey();
   final _photoKey = GlobalKey();
-  final _nameKey = GlobalKey();
+  Size? _cardSize;
   Rect? _photoInCard;
-  Rect? _nameInCard;
 
   @override
   void initState() {
@@ -213,16 +161,15 @@ class _StudentIdOverlayState extends State<StudentIdOverlay> {
     WidgetsBinding.instance.addPostFrameCallback((_) => _measure());
   }
 
-  // The card's own layout decides where the photo and the name end up; an
-  // offstage copy at the final size is measured once instead of hard-coding it.
+  // The card sizes itself to its content and decides where the photo sits; an
+  // offstage copy at the final width is measured once instead of hard-coding it.
   void _measure() {
     final card = _measureKey.currentContext?.findRenderObject() as RenderBox?;
     final photo = _photoKey.currentContext?.findRenderObject() as RenderBox?;
-    final name = _nameKey.currentContext?.findRenderObject() as RenderBox?;
-    if (card == null || photo == null || name == null || !mounted) return;
+    if (card == null || photo == null || !mounted) return;
     setState(() {
+      _cardSize = card.size;
       _photoInCard = photo.localToGlobal(Offset.zero, ancestor: card) & photo.size;
-      _nameInCard = name.localToGlobal(Offset.zero, ancestor: card) & name.size;
     });
   }
 
@@ -235,14 +182,10 @@ class _StudentIdOverlayState extends State<StudentIdOverlay> {
     final from = widget.from.tile;
 
     final top = padding.top + 64.0;
-    final bottom = padding.bottom + 72.0;
-    final maxW = size.width - 48;
+    final bottom = padding.bottom + 24.0;
+    final cardW = size.width - 48;
     final maxH = size.height - top - bottom;
-    var cardW = maxW, cardH = cardW * 1.586;
-    if (cardH > maxH) {
-      cardH = maxH;
-      cardW = cardH / 1.586;
-    }
+    final cardH = (_cardSize?.height ?? cardW * 1.4).clamp(0.0, maxH);
     final to = Rect.fromCenter(center: Offset(size.width / 2, top + maxH / 2), width: cardW, height: cardH);
 
     Widget scaled(Widget child, Size s) => FittedBox(
@@ -258,20 +201,18 @@ class _StudentIdOverlayState extends State<StudentIdOverlay> {
         final v = widget.animation.value;
         final t = Curves.fastOutSlowIn.transform(v);
         final rect = Rect.lerp(from, to, t)!;
-        final flying = v > 0 && v < 1 && _photoInCard != null && _nameInCard != null;
+        final flying = v > 0 && v < 1 && _photoInCard != null;
         final tileOpacity = (1 - v / 0.2).clamp(0.0, 1.0);
         final cardOpacity = ((v - 0.2) / 0.8).clamp(0.0, 1.0);
         final photoRect = flying ? Rect.lerp(widget.from.avatar, _photoInCard!.shift(to.topLeft), t)! : null;
-        final nameRect = flying ? Rect.lerp(widget.from.name, _nameInCard!.shift(to.topLeft), t)! : null;
 
         return Stack(
           children: [
             Positioned.fill(child: IgnorePointer(ignoring: v == 0, child: Opacity(opacity: t, child: ColoredBox(color: colors.background)))),
             Offstage(
               child: SizedBox(
-                width: to.width,
-                height: to.height,
-                child: StudentIdCardView(key: _measureKey, card: widget.card, photoKey: _photoKey, nameKey: _nameKey),
+                width: cardW,
+                child: StudentIdCardView(key: _measureKey, card: widget.card, photoKey: _photoKey),
               ),
             ),
             Positioned(
@@ -305,7 +246,7 @@ class _StudentIdOverlayState extends State<StudentIdOverlay> {
                   child: Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 24),
                     child: Text(
-                      widget.card.number == null ? 'The student number and validity appear once the school connection provides them.' : 'Show this card at the entrance or the library.',
+                      widget.card.validUntil == null ? 'Programme, validity and signature appear once the school connection provides them.' : 'Show this card at the entrance or the library.',
                       textAlign: TextAlign.center,
                       style: typography.xs.copyWith(color: colors.mutedForeground),
                     ),
@@ -330,7 +271,11 @@ class _StudentIdOverlayState extends State<StudentIdOverlay> {
                     fit: StackFit.expand,
                     children: [
                       if (tileOpacity > 0) Opacity(opacity: tileOpacity, child: scaled(widget.tileBuilder(flying), from.size)),
-                      if (cardOpacity > 0) Opacity(opacity: cardOpacity, child: scaled(StudentIdCardView(card: widget.card, hideShared: flying), to.size)),
+                      if (cardOpacity > 0)
+                        Opacity(
+                          opacity: cardOpacity,
+                          child: scaled(SingleChildScrollView(physics: const NeverScrollableScrollPhysics(), child: StudentIdCardView(card: widget.card, hideShared: flying)), Size(cardW, _cardSize?.height ?? to.height)),
+                        ),
                     ],
                   ),
                 ),
@@ -342,22 +287,12 @@ class _StudentIdOverlayState extends State<StudentIdOverlay> {
                 child: IgnorePointer(
                   child: StudentIdPhoto(
                     initial: widget.initial,
+                    photo: widget.card.photo,
                     photoUrl: widget.card.photoUrl,
                     width: photoRect.width,
                     height: photoRect.height,
-                    radius: lerpDouble(32, 10, t)!,
+                    radius: lerpDouble(32, 14, t)!,
                     fontSize: lerpDouble(20, 34, t)!,
-                  ),
-                ),
-              ),
-            if (nameRect != null)
-              Positioned.fromRect(
-                rect: nameRect,
-                child: IgnorePointer(
-                  child: FittedBox(
-                    fit: BoxFit.scaleDown,
-                    alignment: Alignment.centerLeft,
-                    child: Text(widget.card.fullName, maxLines: 1, style: typography.lg.copyWith(fontWeight: FontWeight.w800, height: 1.1)),
                   ),
                 ),
               ),

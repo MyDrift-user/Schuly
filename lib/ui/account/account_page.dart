@@ -8,6 +8,7 @@ import '../../services/active_account_service.dart';
 import '../../services/api_client.dart';
 import '../../services/api_error.dart';
 import '../../services/app_mode_service.dart';
+import '../../services/demo_data.dart';
 import '../../services/school_data_service.dart';
 import '../../services/toast_service.dart';
 import '../authenticator/authenticator_vault_screen.dart';
@@ -40,7 +41,6 @@ class _AccountPageState extends State<AccountPage> with SingleTickerProviderStat
   late final AnimationController _idAnim = AnimationController(vsync: this, duration: const Duration(milliseconds: 420), reverseDuration: const Duration(milliseconds: 320));
   final _tileKey = GlobalKey();
   final _avatarKey = GlobalKey();
-  final _nameKey = GlobalKey();
   OverlayEntry? _idEntry;
   static const _dragSpan = 160.0;
 
@@ -52,7 +52,7 @@ class _AccountPageState extends State<AccountPage> with SingleTickerProviderStat
       final box = key.currentContext!.findRenderObject() as RenderBox;
       return box.localToGlobal(Offset.zero) & box.size;
     }
-    final from = TileGeometry(tile: rectOf(_tileKey), avatar: rectOf(_avatarKey), name: rectOf(_nameKey));
+    final from = TileGeometry(tile: rectOf(_tileKey), avatar: rectOf(_avatarKey));
     _idEntry = OverlayEntry(
       builder: (_) => StudentIdOverlay(
         animation: _idAnim,
@@ -200,7 +200,8 @@ class _AccountPageState extends State<AccountPage> with SingleTickerProviderStat
       [me?.zip, me?.city].where((s) => (s ?? '').isNotEmpty).join(' '),
     ].where((s) => (s ?? '').isNotEmpty).join(', ');
 
-    final card = me == null ? null : StudentIdCard.fromProfile(me, schoolName: ActiveAccountService.instance.active?.fullName ?? me.schoolName, photoUrl: avatarUrl);
+    final profileCard = me == null ? null : StudentIdCard.fromProfile(me, schoolName: ActiveAccountService.instance.active?.fullName ?? me.schoolName, photoUrl: avatarUrl);
+    final card = profileCard != null && DemoData.enabled ? DemoData.studentId(profileCard) : profileCard;
     Widget buildTile({Key? key, bool keyed = false, bool hideShared = false}) => Container(
               key: key,
               padding: const EdgeInsets.all(16),
@@ -228,10 +229,7 @@ class _AccountPageState extends State<AccountPage> with SingleTickerProviderStat
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Opacity(
-                              opacity: hideShared ? 0 : 1,
-                              child: Text(fullName.isEmpty ? 'Account' : fullName, key: keyed ? _nameKey : null, style: typography.lg.copyWith(fontWeight: FontWeight.w800)),
-                            ),
+                            Text(fullName.isEmpty ? 'Account' : fullName, style: typography.lg.copyWith(fontWeight: FontWeight.w800)),
                             if (me?.schoolName?.isNotEmpty ?? false)
                               Text(me!.schoolName!, style: typography.sm.copyWith(color: colors.mutedForeground), overflow: TextOverflow.ellipsis),
                             const SizedBox(height: 8),
