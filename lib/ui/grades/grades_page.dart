@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:forui/forui.dart';
 import 'package:schuly_api/schuly_api.dart';
 
+import '../../services/grade_settings.dart';
 import '../../services/layout_prefs.dart';
 import '../../services/school_data_service.dart';
 import '../core/dates.dart';
@@ -11,6 +12,7 @@ import '../core/ui/empty_state.dart';
 import '../core/ui/chips.dart';
 import '../core/ui/section_header.dart';
 import '../core/ui/stat_card.dart';
+import 'grade_math.dart';
 
 class GradesPage extends StatefulWidget {
   const GradesPage({super.key});
@@ -40,7 +42,7 @@ class _GradesPageState extends State<GradesPage> {
   }
 
   @override
-  Widget build(BuildContext context) => ListenableBuilder(listenable: LayoutPrefs.instance, builder: (context, _) => _build(context));
+  Widget build(BuildContext context) => ListenableBuilder(listenable: Listenable.merge([LayoutPrefs.instance, GradeSettings.instance]), builder: (context, _) => _build(context));
 
   Widget _build(BuildContext context) {
     final typography = context.theme.typography;
@@ -103,26 +105,51 @@ class _GradesPageState extends State<GradesPage> {
       list.sort((a, b) => (b.date?.compareTo(a.date ?? b.date!) ?? 0));
     }
 
-    final classAverages = <String, double>{};
-    double ws = 0, ss = 0;
-    int below = 0;
-    for (final entry in byClass.entries) {
-      double cws = 0, css = 0;
-      for (final e in entry.value) {
-        final g = myGrades[e.id];
-        if (g == null || !isGraded(g.score)) continue;
-        final w = (g.weighting ?? 1).toDouble();
-        cws += w;
-        css += g.score!.toDouble() * w;
-        ws += w;
-        ss += g.score!.toDouble() * w;
-        if (g.score! < 4) below++;
+    final settings = GradeSettings.instance;
+    final classAverages = <String, double>{
+      for (final entry in byClass.entries) entry.key: ?subjectAverage(entry.value, myGrades),
+    };
+    final below = classAverages.values.where((a) => settings.subjectRounding.apply(a) < 4).length;
+    final average = overallAverage(byClass, myGrades, settings);
+    final best = classAverages.entries.fold<MapEntry<String, double>?>(null, (m, e) => m == null || e.value > m.value ? e : m);
+
+    StatCard? tile(String key) {
+      if (key.startsWith('group:')) {
+        final group = settings.groups.where((g) => g.id == key.substring(6)).firstOrNull;
+        if (group == null) return null;
+        final avg = overallAverage(byClass, myGrades, settings, classIds: group.classIds);
+        return StatCard(
+          icon: FIcons.layers,
+          accent: avg == null ? Accent.neutral : gradeAccent(avg),
+          value: avg == null ? '-' : formatGrade(avg),
+          label: group.name,
+        );
       }
-      if (cws > 0) classAverages[entry.key] = css / cws;
+      return switch (key) {
+        'average' => StatCard(
+            icon: FIcons.sigma,
+            accent: average == null ? Accent.neutral : gradeAccent(average),
+            value: average == null ? '-' : formatGrade(average),
+            label: 'Average',
+          ),
+        'exams' => StatCard(icon: FIcons.listChecks, value: '${inPeriod.length}', label: inPeriod.length == 1 ? 'Exam' : 'Exams'),
+        'best' => StatCard(
+            icon: FIcons.trophy,
+            accent: best == null ? Accent.neutral : gradeAccent(best.value),
+            value: best == null ? '-' : formatGrade(best.value),
+            label: best == null ? 'Best subject' : (classNames[best.key] ?? 'Best subject'),
+          ),
+        'below' => StatCard(
+            icon: below > 0 ? FIcons.triangleAlert : FIcons.badgeCheck,
+            accent: below > 0 ? Accent.amber : Accent.green,
+            value: '$below',
+            label: 'Below 4',
+          ),
+        _ => null,
+      };
     }
-    final average = ws > 0 ? ss / ws : null;
-    final best = classAverages.entries.fold<MapEntry<String, double>?>(
-        null, (m, e) => m == null || e.value > m.value ? e : m);
+
+    final tiles = [for (final key in settings.tiles) ?tile(key)];
 
     final sections = byClass.entries.toList()
       ..sort((a, b) => (classNames[a.key] ?? '').compareTo(classNames[b.key] ?? ''));
@@ -150,35 +177,24 @@ class _GradesPageState extends State<GradesPage> {
               ],
             ),
           ),
-          if (LayoutPrefs.instance.gradesTiles)
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
-            child: StatRow(children: [
-              StatCard(
-                icon: FIcons.sigma,
-                accent: average == null ? Accent.neutral : gradeAccent(average),
-                value: average == null ? '-' : formatGrade(average),
-                label: 'Average',
+          if (tiles.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+              child: Column(
+                children: [
+                  for (var i = 0; i < tiles.length; i += 3) ...[
+                    if (i > 0) const SizedBox(height: 10),
+                    StatRow(children: tiles.sublist(i, i + 3 > tiles.length ? tiles.length : i + 3)),
+                  ],
+                ],
               ),
-              StatCard(
-                icon: FIcons.listChecks,
-                value: '${inPeriod.length}',
-                label: inPeriod.length == 1 ? 'Exam' : 'Exams',
-              ),
-              StatCard(
-                icon: below > 0 ? FIcons.triangleAlert : FIcons.trophy,
-                accent: below > 0 ? Accent.amber : Accent.neutral,
-                value: below > 0 ? '$below' : (best == null ? '-' : formatGrade(best.value)),
-                label: below > 0 ? 'Below 4' : 'Best subject',
-              ),
-            ]),
-          ),
+            ),
           for (final entry in sections)
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 20),
               child: _ClassSection(
                 title: classNames[entry.key] ?? 'Class',
-                average: classAverages[entry.key],
+                average: classAverages[entry.key] == null ? null : settings.subjectRounding.apply(classAverages[entry.key]!),
                 exams: entry.value,
                 myGrades: myGrades,
               ),

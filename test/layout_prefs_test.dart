@@ -19,7 +19,6 @@ void main() {
       'homeTiles': ['documents', 'average'],
       'timeColumn': 'right',
       'dayStrip': 'bottom',
-      'gradesTiles': false,
       'absencesTiles': true,
     });
     expect(p.homeOrder.take(3), [HomeSection.grades, HomeSection.hero, HomeSection.tiles]);
@@ -28,7 +27,6 @@ void main() {
     expect(p.homeTiles, [HomeTile.documents, HomeTile.average]);
     expect(p.timeColumn, TimeColumnSide.right);
     expect(p.dayStrip, DayStripPosition.bottom);
-    expect(p.gradesTiles, isFalse);
     final copy = LayoutPrefs.instance..applyJson(p.toJson());
     expect(copy.toJson(), p.toJson());
   });

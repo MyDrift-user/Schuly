@@ -64,7 +64,6 @@ class LayoutPrefs extends ChangeNotifier {
   List<HomeTile> _homeTiles = defaultTiles;
   TimeColumnSide _timeColumn = TimeColumnSide.left;
   DayStripPosition _dayStrip = DayStripPosition.top;
-  bool _gradesTiles = true;
   bool _absencesTiles = true;
 
   List<HomeSection> get homeOrder => _homeOrder;
@@ -72,7 +71,6 @@ class LayoutPrefs extends ChangeNotifier {
   List<HomeTile> get homeTiles => _homeTiles;
   TimeColumnSide get timeColumn => _timeColumn;
   DayStripPosition get dayStrip => _dayStrip;
-  bool get gradesTiles => _gradesTiles;
   bool get absencesTiles => _absencesTiles;
 
   bool get isDefault => jsonEncode(toJson()) == jsonEncode(LayoutPrefs._().toJson());
@@ -96,7 +94,6 @@ class LayoutPrefs extends ChangeNotifier {
         'homeTiles': [for (final t in _homeTiles) t.name],
         'timeColumn': _timeColumn.name,
         'dayStrip': _dayStrip.name,
-        'gradesTiles': _gradesTiles,
         'absencesTiles': _absencesTiles,
       };
 
@@ -123,7 +120,6 @@ class LayoutPrefs extends ChangeNotifier {
     }
     _timeColumn = TimeColumnSide.values.where((v) => v.name == json['timeColumn']).firstOrNull ?? TimeColumnSide.left;
     _dayStrip = DayStripPosition.values.where((v) => v.name == json['dayStrip']).firstOrNull ?? DayStripPosition.top;
-    _gradesTiles = json['gradesTiles'] as bool? ?? true;
     _absencesTiles = json['absencesTiles'] as bool? ?? true;
   }
 
@@ -167,11 +163,6 @@ class LayoutPrefs extends ChangeNotifier {
 
   Future<void> setDayStrip(DayStripPosition position) async {
     _dayStrip = position;
-    await _save();
-  }
-
-  Future<void> setGradesTiles(bool show) async {
-    _gradesTiles = show;
     await _save();
   }
 

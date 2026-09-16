@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:forui/forui.dart';
 import 'package:schuly_api/schuly_api.dart';
 
+import '../../services/grade_settings.dart';
 import '../../services/layout_prefs.dart';
 import '../../services/school_data_service.dart';
 import '../authenticator/authenticator_vault_screen.dart';
@@ -15,6 +16,7 @@ import '../core/ui/section_header.dart';
 import '../core/ui/stat_card.dart';
 import '../dashboard/tab_requests.dart';
 import '../documents/documents_page.dart';
+import '../grades/grade_math.dart';
 import '../timetable/day_schedule.dart';
 import '../timetable/entry_style.dart';
 import '../timetable/timeline_row.dart';
@@ -23,7 +25,7 @@ class HomePage extends StatelessWidget {
   const HomePage({super.key});
 
   @override
-  Widget build(BuildContext context) => ListenableBuilder(listenable: LayoutPrefs.instance, builder: (context, _) => _build(context));
+  Widget build(BuildContext context) => ListenableBuilder(listenable: Listenable.merge([LayoutPrefs.instance, GradeSettings.instance]), builder: (context, _) => _build(context));
 
   Widget _build(BuildContext context) {
     final colors = context.theme.colors;
@@ -64,13 +66,12 @@ class HomePage extends StatelessWidget {
       });
     final latestGrades = graded.take(4).toList();
 
-    double ws = 0, ss = 0;
+    final byClass = <String, List<ExamDto>>{};
     for (final e in graded) {
-      final w = (e.value.weighting ?? 1).toDouble();
-      ws += w;
-      ss += e.value.score!.toDouble() * w;
+      final exam = examById[e.key];
+      if (exam != null) byClass.putIfAbsent(exam.classId ?? '-', () => []).add(exam);
     }
-    final average = ws > 0 ? ss / ws : null;
+    final average = overallAverage(byClass, myGrades, GradeSettings.instance);
 
     final recentAbsences = svc.absences.toList()..sort((a, b) => b.from.compareTo(a.from));
     final firstName = svc.me?.firstName.trim();

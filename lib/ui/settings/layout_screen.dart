@@ -1,6 +1,7 @@
 import 'package:flutter/widgets.dart';
 import 'package:forui/forui.dart';
 
+import '../../services/grade_settings.dart';
 import '../../services/layout_prefs.dart';
 import '../core/ui/section_header.dart';
 import '../customize/layout_editors.dart';
@@ -13,14 +14,24 @@ class LayoutScreen extends StatelessWidget {
     final colors = context.theme.colors;
     final typography = context.theme.typography;
     return ListenableBuilder(
-      listenable: LayoutPrefs.instance,
+      listenable: Listenable.merge([LayoutPrefs.instance, GradeSettings.instance]),
       builder: (context, _) {
         final prefs = LayoutPrefs.instance;
         return FScaffold(
           header: FHeader.nested(
             title: const Text('Layout'),
             prefixes: [FHeaderAction.back(onPress: () => Navigator.of(context).pop())],
-            suffixes: [FHeaderAction(icon: const Icon(FIcons.rotateCcw), onPress: prefs.isDefault ? null : prefs.reset)],
+            suffixes: [
+              FHeaderAction(
+                icon: const Icon(FIcons.rotateCcw),
+                onPress: prefs.isDefault && GradeSettings.instance.isDefault
+                    ? null
+                    : () {
+                        prefs.reset();
+                        GradeSettings.instance.reset();
+                      },
+              ),
+            ],
           ),
           childPad: false,
           child: ListView(
@@ -37,7 +48,7 @@ class LayoutScreen extends StatelessWidget {
               ...timetableLayoutOptions(prefs),
               const SizedBox(height: 16),
               const SectionHeader(icon: FIcons.chartColumn, title: 'Grades'),
-              ...gradesLayoutOptions(prefs),
+              ...gradesLayoutOptions(context),
               const SizedBox(height: 24),
               const SectionHeader(icon: FIcons.calendarOff, title: 'Absences'),
               ...absencesLayoutOptions(prefs),
