@@ -48,7 +48,7 @@ class _StudentIdScreenState extends State<StudentIdScreen> {
             child: Center(
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(24, 8, 24, 8),
-                child: AspectRatio(aspectRatio: 1 / 1.586, child: _Card(card: card)),
+                child: AspectRatio(aspectRatio: 1 / 1.586, child: Hero(tag: 'student-id-card', child: _Card(card: card))),
               ),
             ),
           ),
@@ -123,17 +123,14 @@ class _Card extends StatelessWidget {
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Hero(
-                        tag: 'student-id-photo',
-                        child: Container(
-                          width: 96,
-                          height: 120,
-                          clipBehavior: Clip.antiAlias,
-                          decoration: BoxDecoration(color: colors.muted, borderRadius: BorderRadius.circular(10), border: Border.all(color: colors.border)),
-                          child: photoUrl == null || photoUrl.isEmpty
-                              ? Center(child: Text(initial, style: typography.xl3.copyWith(color: colors.mutedForeground, fontWeight: FontWeight.w700)))
-                              : Image.network(photoUrl, fit: BoxFit.cover),
-                        ),
+                      Container(
+                        width: 96,
+                        height: 120,
+                        clipBehavior: Clip.antiAlias,
+                        decoration: BoxDecoration(color: colors.muted, borderRadius: BorderRadius.circular(10), border: Border.all(color: colors.border)),
+                        child: photoUrl == null || photoUrl.isEmpty
+                            ? Center(child: Text(initial, style: typography.xl3.copyWith(color: colors.mutedForeground, fontWeight: FontWeight.w700)))
+                            : Image.network(photoUrl, fit: BoxFit.cover),
                       ),
                       const SizedBox(width: 16),
                       Expanded(

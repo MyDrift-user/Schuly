@@ -37,6 +37,24 @@ class _AccountPageState extends State<AccountPage> {
   DateTime? _lastSync;
   String? _syncStatus;
   String? _syncError;
+  double _pull = 0;
+  static const _pullThreshold = 72.0;
+
+  void _onPull(double dy, SchoolUserDto me, String? avatarUrl) {
+    final next = (_pull + dy).clamp(0.0, _pullThreshold);
+    if (next >= _pullThreshold) {
+      setState(() => _pull = 0);
+      _openStudentId(me, avatarUrl);
+      return;
+    }
+    setState(() => _pull = next);
+  }
+
+  void _endPull(double velocity, SchoolUserDto me, String? avatarUrl) {
+    final open = velocity > 300 || _pull >= _pullThreshold * 0.6;
+    setState(() => _pull = 0);
+    if (open) _openStudentId(me, avatarUrl);
+  }
 
   @override
   void initState() {
@@ -159,8 +177,14 @@ class _AccountPageState extends State<AccountPage> {
         children: [
           GestureDetector(
             onTap: me == null ? null : () => _openStudentId(me, avatarUrl),
-            onVerticalDragEnd: me == null ? null : (d) => d.primaryVelocity != null && d.primaryVelocity! > 250 ? _openStudentId(me, avatarUrl) : null,
-            child: Container(
+            onVerticalDragUpdate: me == null ? null : (d) => _onPull(d.delta.dy, me, avatarUrl),
+            onVerticalDragEnd: me == null ? null : (d) => _endPull(d.primaryVelocity ?? 0, me, avatarUrl),
+            onVerticalDragCancel: () => setState(() => _pull = 0),
+            child: Transform.translate(
+              offset: Offset(0, _pull * 0.35),
+              child: Hero(
+                tag: 'student-id-card',
+                child: Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
                 color: colors.background,
@@ -172,12 +196,9 @@ class _AccountPageState extends State<AccountPage> {
                 children: [
                   Row(
                     children: [
-                      Hero(
-                        tag: 'student-id-photo',
-                        child: (avatarUrl == null || avatarUrl.isEmpty)
-                            ? FAvatar.raw(size: 64, child: fallback)
-                            : FAvatar(size: 64, image: NetworkImage(avatarUrl), fallback: fallback),
-                      ),
+                      (avatarUrl == null || avatarUrl.isEmpty)
+                          ? FAvatar.raw(size: 64, child: fallback)
+                          : FAvatar(size: 64, image: NetworkImage(avatarUrl), fallback: fallback),
                       const SizedBox(width: 16),
                       Expanded(
                         child: Column(
@@ -237,6 +258,8 @@ class _AccountPageState extends State<AccountPage> {
                     ),
                   ],
                 ],
+              ),
+                ),
               ),
             ),
           ),
