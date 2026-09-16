@@ -3,6 +3,7 @@ import 'package:forui/forui.dart';
 import 'package:schuly_api/schuly_api.dart';
 
 import '../../config/oidc_config.dart';
+import '../../domain/student_id.dart';
 import '../../services/active_account_service.dart';
 import '../../services/api_client.dart';
 import '../../services/api_error.dart';
@@ -16,6 +17,7 @@ import '../core/ui/section_header.dart';
 import '../documents/documents_page.dart';
 import '../settings/settings_screen.dart';
 import 'classes_screen.dart';
+import 'student_id_screen.dart';
 import 'teachers_screen.dart';
 
 class AccountPage extends StatefulWidget {
@@ -111,6 +113,19 @@ class _AccountPageState extends State<AccountPage> {
 
   void _push(Widget screen) => Navigator.of(context).push(MaterialPageRoute(builder: (_) => screen));
 
+  void _openStudentId(SchoolUserDto me, String? avatarUrl) {
+    final card = StudentIdCard.fromProfile(me, schoolName: ActiveAccountService.instance.active?.fullName ?? me.schoolName, photoUrl: avatarUrl);
+    Navigator.of(context).push(PageRouteBuilder<void>(
+      pageBuilder: (_, _, _) => StudentIdScreen(card: card),
+      transitionsBuilder: (_, animation, _, child) => SlideTransition(
+        position: Tween(begin: const Offset(0, 1), end: Offset.zero).animate(CurvedAnimation(parent: animation, curve: Curves.easeOutCubic)),
+        child: child,
+      ),
+      transitionDuration: const Duration(milliseconds: 320),
+      reverseTransitionDuration: const Duration(milliseconds: 240),
+    ));
+  }
+
   @override
   Widget build(BuildContext context) {
     final colors = context.theme.colors;
@@ -142,63 +157,87 @@ class _AccountPageState extends State<AccountPage> {
         physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
         children: [
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: colors.background,
-              border: Border.all(color: colors.border),
-              borderRadius: context.theme.style.borderRadius,
-            ),
-            child: Row(
-              children: [
-                (avatarUrl == null || avatarUrl.isEmpty)
-                    ? FAvatar.raw(size: 64, child: fallback)
-                    : FAvatar(size: 64, image: NetworkImage(avatarUrl), fallback: fallback),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+          GestureDetector(
+            onTap: me == null ? null : () => _openStudentId(me, avatarUrl),
+            onVerticalDragEnd: me == null ? null : (d) => d.primaryVelocity != null && d.primaryVelocity! > 250 ? _openStudentId(me, avatarUrl) : null,
+            child: Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: colors.background,
+                border: Border.all(color: colors.border),
+                borderRadius: context.theme.style.borderRadius,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Row(
                     children: [
-                      Text(fullName.isEmpty ? 'Account' : fullName,
-                          style: typography.lg.copyWith(fontWeight: FontWeight.w800)),
-                      if (me?.schoolName?.isNotEmpty ?? false)
-                        Text(me!.schoolName!,
-                            style: typography.sm.copyWith(color: colors.mutedForeground),
-                            overflow: TextOverflow.ellipsis),
-                      const SizedBox(height: 8),
-                      Row(
-                        children: [
-                          FBadge(
-                            style: FBadgeStyle.secondary(),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
+                      Hero(
+                        tag: 'student-id-photo',
+                        child: (avatarUrl == null || avatarUrl.isEmpty)
+                            ? FAvatar.raw(size: 64, child: fallback)
+                            : FAvatar(size: 64, image: NetworkImage(avatarUrl), fallback: fallback),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(fullName.isEmpty ? 'Account' : fullName, style: typography.lg.copyWith(fontWeight: FontWeight.w800)),
+                            if (me?.schoolName?.isNotEmpty ?? false)
+                              Text(me!.schoolName!, style: typography.sm.copyWith(color: colors.mutedForeground), overflow: TextOverflow.ellipsis),
+                            const SizedBox(height: 8),
+                            Row(
                               children: [
-                                Icon(_roleIcon(me?.role), size: 12),
-                                const SizedBox(width: 4),
-                                Text(_roleLabel(me?.role)),
+                                FBadge(
+                                  style: FBadgeStyle.secondary(),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(_roleIcon(me?.role), size: 12),
+                                      const SizedBox(width: 4),
+                                      Text(_roleLabel(me?.role)),
+                                    ],
+                                  ),
+                                ),
+                                if (isPrivate) ...[
+                                  const SizedBox(width: 6),
+                                  FBadge(
+                                    style: FBadgeStyle.outline(),
+                                    child: const Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Icon(FIcons.shieldCheck, size: 12),
+                                        SizedBox(width: 4),
+                                        Text('Private'),
+                                      ],
+                                    ),
+                                  ),
+                                ],
                               ],
                             ),
-                          ),
-                          if (isPrivate) ...[
-                            const SizedBox(width: 6),
-                            FBadge(
-                              style: FBadgeStyle.outline(),
-                              child: const Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(FIcons.shieldCheck, size: 12),
-                                  SizedBox(width: 4),
-                                  Text('Private'),
-                                ],
-                              ),
-                            ),
                           ],
-                        ],
+                        ),
                       ),
                     ],
                   ),
-                ),
-              ],
+                  if (me != null) ...[
+                    const SizedBox(height: 12),
+                    FDivider(style: (s) => s.copyWith(padding: EdgeInsets.zero)),
+                    const SizedBox(height: 10),
+                    Row(
+                      children: [
+                        Icon(FIcons.idCard, size: 16, color: colors.mutedForeground),
+                        const SizedBox(width: 8),
+                        Expanded(child: Text('Student ID', style: typography.sm.copyWith(fontWeight: FontWeight.w600))),
+                        Text('Tap or swipe down', style: typography.xs.copyWith(color: colors.mutedForeground)),
+                        const SizedBox(width: 4),
+                        Icon(FIcons.chevronDown, size: 16, color: colors.mutedForeground),
+                      ],
+                    ),
+                  ],
+                ],
+              ),
             ),
           ),
           const SizedBox(height: 20),
