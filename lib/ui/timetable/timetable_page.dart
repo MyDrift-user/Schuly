@@ -156,13 +156,7 @@ class _TimetablePageState extends State<TimetablePage> {
             ),
           ),
           if (!isToday)
-            FButton(
-              style: FButtonStyle.outline(),
-              mainAxisSize: MainAxisSize.min,
-              prefix: const Icon(FIcons.locate),
-              onPress: () => _goTo(today, picked: true),
-              child: const Text('Today'),
-            ),
+            FButton.icon(style: FButtonStyle.outline(), onPress: () => _goTo(today, picked: true), child: const Icon(FIcons.locate)),
         ],
       ),
     );
