@@ -39,21 +39,27 @@ class _AccountPageState extends State<AccountPage> with SingleTickerProviderStat
   String? _syncError;
   late final AnimationController _idAnim = AnimationController(vsync: this, duration: const Duration(milliseconds: 420), reverseDuration: const Duration(milliseconds: 320));
   final _tileKey = GlobalKey();
+  final _avatarKey = GlobalKey();
+  final _nameKey = GlobalKey();
   OverlayEntry? _idEntry;
   static const _dragSpan = 160.0;
 
   bool get _idOpen => _idEntry != null;
 
-  void _showId(StudentIdCard card, Widget tile) {
+  void _showId(StudentIdCard card, Widget Function(bool hideShared) tileBuilder, String initial) {
     if (_idEntry != null) return;
-    final box = _tileKey.currentContext!.findRenderObject() as RenderBox;
-    final from = box.localToGlobal(Offset.zero) & box.size;
+    Rect rectOf(GlobalKey key) {
+      final box = key.currentContext!.findRenderObject() as RenderBox;
+      return box.localToGlobal(Offset.zero) & box.size;
+    }
+    final from = TileGeometry(tile: rectOf(_tileKey), avatar: rectOf(_avatarKey), name: rectOf(_nameKey));
     _idEntry = OverlayEntry(
       builder: (_) => StudentIdOverlay(
         animation: _idAnim,
         from: from,
-        tile: tile,
+        tileBuilder: tileBuilder,
         card: card,
+        initial: initial,
         onClose: _closeId,
         onDragUpdate: (dy) => _idAnim.value = (_idAnim.value + dy / _dragSpan).clamp(0.0, 1.0),
         onDragEnd: (v) => v < -300 || (_idAnim.value < 0.65 && v <= 300) ? _closeId() : _idAnim.forward(),
@@ -63,8 +69,8 @@ class _AccountPageState extends State<AccountPage> with SingleTickerProviderStat
     setState(() {});
   }
 
-  void _openId(StudentIdCard card, Widget tile) {
-    _showId(card, tile);
+  void _openId(StudentIdCard card, Widget Function(bool hideShared) tileBuilder, String initial) {
+    _showId(card, tileBuilder, initial);
     _idAnim.forward();
   }
 
@@ -77,8 +83,8 @@ class _AccountPageState extends State<AccountPage> with SingleTickerProviderStat
     });
   }
 
-  void _pullUpdate(double dy, StudentIdCard card, Widget tile) {
-    _showId(card, tile);
+  void _pullUpdate(double dy, StudentIdCard card, Widget Function(bool hideShared) tileBuilder, String initial) {
+    _showId(card, tileBuilder, initial);
     _idAnim.value = (_idAnim.value + dy / _dragSpan).clamp(0.0, 1.0);
   }
 
@@ -195,7 +201,7 @@ class _AccountPageState extends State<AccountPage> with SingleTickerProviderStat
     ].where((s) => (s ?? '').isNotEmpty).join(', ');
 
     final card = me == null ? null : StudentIdCard.fromProfile(me, schoolName: ActiveAccountService.instance.active?.fullName ?? me.schoolName, photoUrl: avatarUrl);
-    Widget buildTile({Key? key}) => Container(
+    Widget buildTile({Key? key, bool keyed = false, bool hideShared = false}) => Container(
               key: key,
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
@@ -208,15 +214,24 @@ class _AccountPageState extends State<AccountPage> with SingleTickerProviderStat
                 children: [
                   Row(
                     children: [
-                      (avatarUrl == null || avatarUrl.isEmpty)
-                          ? FAvatar.raw(size: 64, child: fallback)
-                          : FAvatar(size: 64, image: NetworkImage(avatarUrl), fallback: fallback),
+                      Opacity(
+                        opacity: hideShared ? 0 : 1,
+                        child: KeyedSubtree(
+                          key: keyed ? _avatarKey : null,
+                          child: (avatarUrl == null || avatarUrl.isEmpty)
+                              ? FAvatar.raw(size: 64, child: fallback)
+                              : FAvatar(size: 64, image: NetworkImage(avatarUrl), fallback: fallback),
+                        ),
+                      ),
                       const SizedBox(width: 16),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(fullName.isEmpty ? 'Account' : fullName, style: typography.lg.copyWith(fontWeight: FontWeight.w800)),
+                            Opacity(
+                              opacity: hideShared ? 0 : 1,
+                              child: Text(fullName.isEmpty ? 'Account' : fullName, key: keyed ? _nameKey : null, style: typography.lg.copyWith(fontWeight: FontWeight.w800)),
+                            ),
                             if (me?.schoolName?.isNotEmpty ?? false)
                               Text(me!.schoolName!, style: typography.sm.copyWith(color: colors.mutedForeground), overflow: TextOverflow.ellipsis),
                             const SizedBox(height: 8),
@@ -297,11 +312,11 @@ class _AccountPageState extends State<AccountPage> with SingleTickerProviderStat
         padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
         children: [
           GestureDetector(
-            onTap: card == null ? null : () => _openId(card, buildTile()),
-            onVerticalDragUpdate: card == null ? null : (d) => _pullUpdate(d.delta.dy, card, buildTile()),
+            onTap: card == null ? null : () => _openId(card, (hide) => buildTile(hideShared: hide), initial),
+            onVerticalDragUpdate: card == null ? null : (d) => _pullUpdate(d.delta.dy, card, (hide) => buildTile(hideShared: hide), initial),
             onVerticalDragEnd: card == null ? null : (d) => _pullEnd(d.primaryVelocity ?? 0),
             onVerticalDragCancel: () => _pullEnd(0),
-            child: Opacity(opacity: _idOpen ? 0 : 1, child: buildTile(key: _tileKey)),
+            child: Opacity(opacity: _idOpen ? 0 : 1, child: buildTile(key: _tileKey, keyed: true)),
           ),
           for (final w in <Widget>[
           const SizedBox(height: 20),
