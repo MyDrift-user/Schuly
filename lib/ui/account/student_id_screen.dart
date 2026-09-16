@@ -11,7 +11,19 @@ import '../core/dates.dart';
 Widget studentIdShuttle(BuildContext context, Animation<double> animation, HeroFlightDirection direction, BuildContext fromContext, BuildContext toContext) {
   final from = (fromContext.widget as Hero).child;
   final to = (toContext.widget as Hero).child;
+  final fromSize = (fromContext.findRenderObject() as RenderBox?)?.size ?? Size.zero;
+  final toSize = (toContext.findRenderObject() as RenderBox?)?.size ?? Size.zero;
   final colors = context.theme.colors;
+  // Each side keeps its own final size and the growing frame reveals it; the
+  // two fade across each other so the frame is never empty.
+  Widget fixed(Widget child, Size size) => OverflowBox(
+        alignment: Alignment.topLeft,
+        minWidth: 0,
+        minHeight: 0,
+        maxWidth: size.width,
+        maxHeight: size.height,
+        child: SizedBox(width: size.width, height: size.height, child: child),
+      );
   return AnimatedBuilder(
     animation: animation,
     builder: (context, _) {
@@ -22,9 +34,10 @@ Widget studentIdShuttle(BuildContext context, Animation<double> animation, HeroF
           color: colors.background,
           child: Stack(
             fit: StackFit.expand,
+            clipBehavior: Clip.hardEdge,
             children: [
-              Opacity(opacity: (1 - t * 2).clamp(0.0, 1.0), child: OverflowBox(alignment: Alignment.topLeft, maxWidth: double.infinity, maxHeight: double.infinity, child: from)),
-              Opacity(opacity: ((t - 0.4) / 0.6).clamp(0.0, 1.0), child: OverflowBox(alignment: Alignment.topLeft, maxWidth: double.infinity, maxHeight: double.infinity, child: to)),
+              Opacity(opacity: 1 - t, child: fixed(from, fromSize)),
+              Opacity(opacity: t, child: fixed(to, toSize)),
             ],
           ),
         ),
