@@ -40,7 +40,7 @@ class _AccountPageState extends State<AccountPage> with SingleTickerProviderStat
   late final AnimationController _idAnim = AnimationController(vsync: this, duration: const Duration(milliseconds: 420), reverseDuration: const Duration(milliseconds: 320));
   final _tileKey = GlobalKey();
   OverlayEntry? _idEntry;
-  static const _dragSpan = 320.0;
+  static const _dragSpan = 160.0;
 
   bool get _idOpen => _idEntry != null;
 
