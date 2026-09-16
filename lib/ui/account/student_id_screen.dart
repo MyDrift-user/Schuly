@@ -5,6 +5,34 @@ import 'package:forui/forui.dart';
 import '../../domain/student_id.dart';
 import '../core/dates.dart';
 
+/// Cross-fades the profile tile's content into the card's content while the
+/// hero rectangle grows, so the tile looks like it expands rather than being
+/// replaced.
+Widget studentIdShuttle(BuildContext context, Animation<double> animation, HeroFlightDirection direction, BuildContext fromContext, BuildContext toContext) {
+  final from = (fromContext.widget as Hero).child;
+  final to = (toContext.widget as Hero).child;
+  final colors = context.theme.colors;
+  return AnimatedBuilder(
+    animation: animation,
+    builder: (context, _) {
+      final t = Curves.easeInOut.transform(direction == HeroFlightDirection.push ? animation.value : 1 - animation.value);
+      return ClipRRect(
+        borderRadius: BorderRadius.lerp(BorderRadius.circular(8), BorderRadius.circular(20), t)!,
+        child: ColoredBox(
+          color: colors.background,
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              Opacity(opacity: (1 - t * 2).clamp(0.0, 1.0), child: OverflowBox(alignment: Alignment.topLeft, maxWidth: double.infinity, maxHeight: double.infinity, child: from)),
+              Opacity(opacity: ((t - 0.4) / 0.6).clamp(0.0, 1.0), child: OverflowBox(alignment: Alignment.topLeft, maxWidth: double.infinity, maxHeight: double.infinity, child: to)),
+            ],
+          ),
+        ),
+      );
+    },
+  );
+}
+
 /// Full-screen student ID, laid out like a physical card so it can be shown
 /// at the door. Opens from the profile card on the account tab.
 class StudentIdScreen extends StatefulWidget {
@@ -48,7 +76,7 @@ class _StudentIdScreenState extends State<StudentIdScreen> {
             child: Center(
               child: Padding(
                 padding: const EdgeInsets.fromLTRB(24, 8, 24, 8),
-                child: AspectRatio(aspectRatio: 1 / 1.586, child: Hero(tag: 'student-id-card', child: _Card(card: card))),
+                child: AspectRatio(aspectRatio: 1 / 1.586, child: Hero(tag: 'student-id-card', flightShuttleBuilder: studentIdShuttle, child: _Card(card: card))),
               ),
             ),
           ),

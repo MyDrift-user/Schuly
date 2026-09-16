@@ -38,11 +38,14 @@ class _AccountPageState extends State<AccountPage> {
   String? _syncStatus;
   String? _syncError;
   double _pull = 0;
+  bool _opening = false;
   static const _pullThreshold = 72.0;
 
   void _onPull(double dy, SchoolUserDto me, String? avatarUrl) {
+    if (_opening) return;
     final next = (_pull + dy).clamp(0.0, _pullThreshold);
     if (next >= _pullThreshold) {
+      _opening = true;
       setState(() => _pull = 0);
       _openStudentId(me, avatarUrl);
       return;
@@ -51,7 +54,8 @@ class _AccountPageState extends State<AccountPage> {
   }
 
   void _endPull(double velocity, SchoolUserDto me, String? avatarUrl) {
-    final open = velocity > 300 || _pull >= _pullThreshold * 0.6;
+    final open = !_opening && (velocity > 300 || _pull >= _pullThreshold * 0.6);
+    _opening = false;
     setState(() => _pull = 0);
     if (open) _openStudentId(me, avatarUrl);
   }
@@ -133,14 +137,13 @@ class _AccountPageState extends State<AccountPage> {
 
   void _openStudentId(SchoolUserDto me, String? avatarUrl) {
     final card = StudentIdCard.fromProfile(me, schoolName: ActiveAccountService.instance.active?.fullName ?? me.schoolName, photoUrl: avatarUrl);
+    // The hero does the moving; the page itself only fades so the tile reads
+    // as expanding in place rather than a sheet sliding over it.
     Navigator.of(context).push(PageRouteBuilder<void>(
       pageBuilder: (_, _, _) => StudentIdScreen(card: card),
-      transitionsBuilder: (_, animation, _, child) => SlideTransition(
-        position: Tween(begin: const Offset(0, 1), end: Offset.zero).animate(CurvedAnimation(parent: animation, curve: Curves.easeOutCubic)),
-        child: child,
-      ),
-      transitionDuration: const Duration(milliseconds: 320),
-      reverseTransitionDuration: const Duration(milliseconds: 240),
+      transitionsBuilder: (_, animation, _, child) => FadeTransition(opacity: CurvedAnimation(parent: animation, curve: Curves.easeOut), child: child),
+      transitionDuration: const Duration(milliseconds: 380),
+      reverseTransitionDuration: const Duration(milliseconds: 280),
     ));
   }
 
@@ -179,11 +182,15 @@ class _AccountPageState extends State<AccountPage> {
             onTap: me == null ? null : () => _openStudentId(me, avatarUrl),
             onVerticalDragUpdate: me == null ? null : (d) => _onPull(d.delta.dy, me, avatarUrl),
             onVerticalDragEnd: me == null ? null : (d) => _endPull(d.primaryVelocity ?? 0, me, avatarUrl),
-            onVerticalDragCancel: () => setState(() => _pull = 0),
+            onVerticalDragCancel: () => setState(() {
+              _pull = 0;
+              _opening = false;
+            }),
             child: Transform.translate(
               offset: Offset(0, _pull * 0.35),
               child: Hero(
                 tag: 'student-id-card',
+                flightShuttleBuilder: studentIdShuttle,
                 child: Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
