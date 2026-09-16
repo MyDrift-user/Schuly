@@ -195,8 +195,8 @@ class _AccountPageState extends State<AccountPage> with SingleTickerProviderStat
     ].where((s) => (s ?? '').isNotEmpty).join(', ');
 
     final card = me == null ? null : StudentIdCard.fromProfile(me, schoolName: ActiveAccountService.instance.active?.fullName ?? me.schoolName, photoUrl: avatarUrl);
-    final tile = Container(
-              key: _tileKey,
+    Widget buildTile({Key? key}) => Container(
+              key: key,
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
                 color: colors.background,
@@ -297,11 +297,11 @@ class _AccountPageState extends State<AccountPage> with SingleTickerProviderStat
         padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
         children: [
           GestureDetector(
-            onTap: card == null ? null : () => _openId(card, tile),
-            onVerticalDragUpdate: card == null ? null : (d) => _pullUpdate(d.delta.dy, card, tile),
+            onTap: card == null ? null : () => _openId(card, buildTile()),
+            onVerticalDragUpdate: card == null ? null : (d) => _pullUpdate(d.delta.dy, card, buildTile()),
             onVerticalDragEnd: card == null ? null : (d) => _pullEnd(d.primaryVelocity ?? 0),
             onVerticalDragCancel: () => _pullEnd(0),
-            child: Opacity(opacity: _idOpen ? 0 : 1, child: tile),
+            child: Opacity(opacity: _idOpen ? 0 : 1, child: buildTile(key: _tileKey)),
           ),
           for (final w in <Widget>[
           const SizedBox(height: 20),
