@@ -39,10 +39,13 @@ String subjectCode(String name) {
 /// The two-letter subject code in a bordered square, the way a printed
 /// timetable abbreviates subjects.
 class SubjectChip extends StatelessWidget {
-  const SubjectChip(this.name, {super.key, this.size = 38, this.highlighted = false});
+  const SubjectChip(this.name, {super.key, this.size = 38, this.highlighted = false, this.bordered = true});
 
   final String name;
   final double size;
+
+  /// Without the square: just the coloured code, for inline use in headers.
+  final bool bordered;
 
   /// Draws the border in the subject colour, for the lesson running now.
   final bool highlighted;
@@ -53,13 +56,15 @@ class SubjectChip extends StatelessWidget {
     final typography = context.theme.typography;
     final accent = subjectAccent(name);
     return Container(
-      width: size,
-      height: size,
+      width: bordered ? size : null,
+      height: bordered ? size : null,
       alignment: Alignment.center,
-      decoration: BoxDecoration(
-        border: Border.all(color: highlighted ? accent.color : colors.border, width: highlighted ? 1.5 : 1),
-        borderRadius: BorderRadius.circular(8),
-      ),
+      decoration: bordered
+          ? BoxDecoration(
+              border: Border.all(color: highlighted ? accent.color : colors.border, width: highlighted ? 1.5 : 1),
+              borderRadius: BorderRadius.circular(8),
+            )
+          : null,
       child: Text(
         subjectCode(name),
         style: typography.sm.copyWith(

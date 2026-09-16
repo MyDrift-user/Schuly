@@ -201,7 +201,7 @@ class _ClassSection extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         SectionHeader(
-          icon: FIcons.bookOpen,
+          leading: SubjectChip(title, bordered: false),
           title: title,
           trailing: avg == null
               ? null
