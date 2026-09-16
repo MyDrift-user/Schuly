@@ -45,21 +45,27 @@ class StatCard extends StatelessWidget {
   }
 }
 
+/// Tiles in equal columns; a short row keeps the column width by padding
+/// with empty slots.
 class StatRow extends StatelessWidget {
-  const StatRow({super.key, required this.children});
+  const StatRow({super.key, required this.children, this.columns = 3});
 
   final List<Widget> children;
+  final int columns;
 
   @override
-  Widget build(BuildContext context) => IntrinsicHeight(
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            for (final (i, c) in children.indexed) ...[
-              if (i > 0) const SizedBox(width: 10),
-              Expanded(child: c),
-            ],
+  Widget build(BuildContext context) {
+    final slots = children.length > columns ? children.length : columns;
+    return IntrinsicHeight(
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          for (var i = 0; i < slots; i++) ...[
+            if (i > 0) const SizedBox(width: 10),
+            Expanded(child: i < children.length ? children[i] : const SizedBox.shrink()),
           ],
-        ),
-      );
+        ],
+      ),
+    );
+  }
 }
