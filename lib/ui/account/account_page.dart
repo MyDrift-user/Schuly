@@ -17,7 +17,7 @@ import '../core/ui/section_header.dart';
 import '../documents/documents_page.dart';
 import '../settings/settings_screen.dart';
 import 'classes_screen.dart';
-import 'student_id_screen.dart';
+import 'student_id_card.dart';
 import 'teachers_screen.dart';
 
 class AccountPage extends StatefulWidget {
@@ -30,34 +30,72 @@ class AccountPage extends StatefulWidget {
   State<AccountPage> createState() => _AccountPageState();
 }
 
-class _AccountPageState extends State<AccountPage> {
+class _AccountPageState extends State<AccountPage> with SingleTickerProviderStateMixin {
   String? _version;
   bool _syncing = false;
   String? _syncMsg;
   DateTime? _lastSync;
   String? _syncStatus;
   String? _syncError;
-  double _pull = 0;
-  bool _opening = false;
-  static const _pullThreshold = 72.0;
+  late final AnimationController _idAnim = AnimationController(vsync: this, duration: const Duration(milliseconds: 420), reverseDuration: const Duration(milliseconds: 320));
+  final _tileKey = GlobalKey();
+  OverlayEntry? _idEntry;
+  static const _dragSpan = 320.0;
 
-  void _onPull(double dy, SchoolUserDto me, String? avatarUrl) {
-    if (_opening) return;
-    final next = (_pull + dy).clamp(0.0, _pullThreshold);
-    if (next >= _pullThreshold) {
-      _opening = true;
-      setState(() => _pull = 0);
-      _openStudentId(me, avatarUrl);
-      return;
-    }
-    setState(() => _pull = next);
+  bool get _idOpen => _idEntry != null;
+
+  void _showId(StudentIdCard card, Widget tile) {
+    if (_idEntry != null) return;
+    final box = _tileKey.currentContext!.findRenderObject() as RenderBox;
+    final from = box.localToGlobal(Offset.zero) & box.size;
+    _idEntry = OverlayEntry(
+      builder: (_) => StudentIdOverlay(
+        animation: _idAnim,
+        from: from,
+        tile: tile,
+        card: card,
+        onClose: _closeId,
+        onDragUpdate: (dy) => _idAnim.value = (_idAnim.value + dy / _dragSpan).clamp(0.0, 1.0),
+        onDragEnd: (v) => v < -300 || (_idAnim.value < 0.65 && v <= 300) ? _closeId() : _idAnim.forward(),
+      ),
+    );
+    Overlay.of(context, rootOverlay: true).insert(_idEntry!);
+    setState(() {});
   }
 
-  void _endPull(double velocity, SchoolUserDto me, String? avatarUrl) {
-    final open = !_opening && (velocity > 300 || _pull >= _pullThreshold * 0.6);
-    _opening = false;
-    setState(() => _pull = 0);
-    if (open) _openStudentId(me, avatarUrl);
+  void _openId(StudentIdCard card, Widget tile) {
+    _showId(card, tile);
+    _idAnim.forward();
+  }
+
+  void _closeId() {
+    _idAnim.reverse().whenComplete(() {
+      if (_idAnim.value > 0) return;
+      _idEntry?.remove();
+      _idEntry = null;
+      if (mounted) setState(() {});
+    });
+  }
+
+  void _pullUpdate(double dy, StudentIdCard card, Widget tile) {
+    _showId(card, tile);
+    _idAnim.value = (_idAnim.value + dy / _dragSpan).clamp(0.0, 1.0);
+  }
+
+  void _pullEnd(double velocity) {
+    if (_idEntry == null) return;
+    if (velocity > 300 || _idAnim.value > 0.3) {
+      _idAnim.forward();
+    } else {
+      _closeId();
+    }
+  }
+
+  @override
+  void dispose() {
+    _idEntry?.remove();
+    _idAnim.dispose();
+    super.dispose();
   }
 
   @override
@@ -135,18 +173,6 @@ class _AccountPageState extends State<AccountPage> {
 
   void _push(Widget screen) => Navigator.of(context).push(MaterialPageRoute(builder: (_) => screen));
 
-  void _openStudentId(SchoolUserDto me, String? avatarUrl) {
-    final card = StudentIdCard.fromProfile(me, schoolName: ActiveAccountService.instance.active?.fullName ?? me.schoolName, photoUrl: avatarUrl);
-    // The hero does the moving; the page itself only fades so the tile reads
-    // as expanding in place rather than a sheet sliding over it.
-    Navigator.of(context).push(PageRouteBuilder<void>(
-      pageBuilder: (_, _, _) => StudentIdScreen(card: card),
-      transitionsBuilder: (_, animation, _, child) => FadeTransition(opacity: CurvedAnimation(parent: animation, curve: Curves.easeOut), child: child),
-      transitionDuration: const Duration(milliseconds: 380),
-      reverseTransitionDuration: const Duration(milliseconds: 280),
-    ));
-  }
-
   @override
   Widget build(BuildContext context) {
     final colors = context.theme.colors;
@@ -168,30 +194,9 @@ class _AccountPageState extends State<AccountPage> {
       [me?.zip, me?.city].where((s) => (s ?? '').isNotEmpty).join(' '),
     ].where((s) => (s ?? '').isNotEmpty).join(', ');
 
-    return RefreshIndicator(
-      onRefresh: () async {
-        await svc.refresh();
-        await _loadVersion();
-        await _loadSyncStatus();
-      },
-      child: ListView(
-        physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
-        children: [
-          GestureDetector(
-            onTap: me == null ? null : () => _openStudentId(me, avatarUrl),
-            onVerticalDragUpdate: me == null ? null : (d) => _onPull(d.delta.dy, me, avatarUrl),
-            onVerticalDragEnd: me == null ? null : (d) => _endPull(d.primaryVelocity ?? 0, me, avatarUrl),
-            onVerticalDragCancel: () => setState(() {
-              _pull = 0;
-              _opening = false;
-            }),
-            child: Transform.translate(
-              offset: Offset(0, _pull * 0.35),
-              child: Hero(
-                tag: 'student-id-card',
-                flightShuttleBuilder: studentIdShuttle,
-                child: Container(
+    final card = me == null ? null : StudentIdCard.fromProfile(me, schoolName: ActiveAccountService.instance.active?.fullName ?? me.schoolName, photoUrl: avatarUrl);
+    final tile = Container(
+              key: _tileKey,
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
                 color: colors.background,
@@ -266,10 +271,39 @@ class _AccountPageState extends State<AccountPage> {
                   ],
                 ],
               ),
-                ),
-              ),
-            ),
+            );
+
+    Widget pushedAside(Widget child) => AnimatedBuilder(
+          animation: _idAnim,
+          builder: (context, _) {
+            final t = Curves.easeInOutCubic.transform(_idAnim.value);
+            return Opacity(opacity: 1 - t, child: Transform.translate(offset: Offset(0, 120 * t), child: child));
+          },
+        );
+
+    return PopScope(
+      canPop: !_idOpen,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) _closeId();
+      },
+      child: RefreshIndicator(
+      onRefresh: () async {
+        await svc.refresh();
+        await _loadVersion();
+        await _loadSyncStatus();
+      },
+      child: ListView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
+        children: [
+          GestureDetector(
+            onTap: card == null ? null : () => _openId(card, tile),
+            onVerticalDragUpdate: card == null ? null : (d) => _pullUpdate(d.delta.dy, card, tile),
+            onVerticalDragEnd: card == null ? null : (d) => _pullEnd(d.primaryVelocity ?? 0),
+            onVerticalDragCancel: () => _pullEnd(0),
+            child: Opacity(opacity: _idOpen ? 0 : 1, child: tile),
           ),
+          for (final w in <Widget>[
           const SizedBox(height: 20),
           FTileGroup(
             divider: FItemDivider.full,
@@ -367,7 +401,10 @@ class _AccountPageState extends State<AccountPage> {
             onPress: widget.onSignOut,
             child: Text(isPrivate ? 'Disconnect school' : 'Sign out'),
           ),
+          ])
+            pushedAside(w),
         ],
+      ),
       ),
     );
   }
