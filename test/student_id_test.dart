@@ -59,7 +59,8 @@ void main() {
     expect(card.signerName, 'Hanna Beispiel, Rektorin');
     expect(card.photo, isNotNull);
     expect(card.signature, isNotNull);
-    expect(card.logos.length, 2);
+    expect(card.qrCode, isNotNull);
+    expect(card.logo, isNotNull);
   });
 
   test('keeps unknown lines as extras', () {

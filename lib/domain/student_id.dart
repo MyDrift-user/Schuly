@@ -4,7 +4,7 @@ import 'dart:typed_data';
 import 'package:schuly_api/schuly_api.dart';
 
 /// The Schulnetz "Lernendenausweis": photo, school, name, date of birth,
-/// programme, validity, the rector's signature and the school logos.
+/// programme, validity, the rector's signature, a QR code and the school logo.
 class StudentIdCard {
   const StudentIdCard({
     required this.title,
@@ -19,7 +19,8 @@ class StudentIdCard {
     this.photo,
     this.photoUrl,
     this.signature,
-    this.logos = const [],
+    this.qrCode,
+    this.logo,
     this.extras = const [],
   });
 
@@ -35,7 +36,8 @@ class StudentIdCard {
   final Uint8List? photo;
   final String? photoUrl;
   final Uint8List? signature;
-  final List<Uint8List> logos;
+  final Uint8List? qrCode;
+  final Uint8List? logo;
 
   /// Label and value pairs the parser did not recognise, shown as they are so
   /// a school that adds a line still gets it on the card.
@@ -67,7 +69,8 @@ class StudentIdCard {
         photo: photo,
         photoUrl: photoUrl,
         signature: signature,
-        logos: logos,
+        qrCode: qrCode,
+        logo: logo,
         extras: extras,
       );
 
@@ -108,7 +111,9 @@ class StudentIdCard {
     final signer = _signer.firstMatch(html);
 
     Uint8List? decode(RegExpMatch? m) => m == null ? null : _decodeDataUri(m.group(1)!);
-    final logos = [for (final m in _logo.allMatches(html)) ?_decodeDataUri(m.group(1)!)];
+    // The footer row is the QR code on the left and the school logo on the right.
+    final qr = _footer.firstMatch(html);
+    final logo = _footerLogo.firstMatch(html);
     final signatureMatch = signer == null ? null : _img.firstMatch(html.substring(signer.end));
 
     return StudentIdCard(
@@ -123,7 +128,8 @@ class StudentIdCard {
       signerName: signer == null ? null : _text(signer.group(1)!),
       photo: decode(images.first),
       signature: decode(signatureMatch),
-      logos: logos,
+      qrCode: decode(qr),
+      logo: decode(logo),
       extras: extras,
     );
   }
@@ -133,7 +139,8 @@ class StudentIdCard {
   static final _pair = RegExp(r'<p class="EAueberschrift">\s*(.*?)\s*</p>\s*<p class="EAinhalt">\s*(.*?)\s*</p>', dotAll: true);
   static final _title = RegExp(r'<p style="color:[^"]*">\s*(.*?)\s*</p>', dotAll: true);
   static final _signer = RegExp(r'<p class="EAueberschrift">\s*([^<]*?)\s*</p>\s*<img', dotAll: true);
-  static final _logo = RegExp(r'<img[^>]+src="(data:image/[^"]+)"[^>]*alt="(?:Left|Right) Image"', caseSensitive: false);
+  static final _footer = RegExp(r'<img[^>]+src="(data:image/[^"]+)"[^>]*alt="Left Image"', caseSensitive: false);
+  static final _footerLogo = RegExp(r'<img[^>]+src="(data:image/[^"]+)"[^>]*alt="Right Image"', caseSensitive: false);
 
   static String _text(String s) => s.replaceAll(RegExp(r'<[^>]+>'), '').replaceAll(RegExp(r'\s+'), ' ').trim();
 

@@ -8,7 +8,7 @@ import '../../domain/student_id.dart';
 import '../core/dates.dart';
 
 /// The ID laid out the way the Schulnetz page does: photo, title, school,
-/// name, date of birth, programme, validity, signature, logos.
+/// name, date of birth, programme, validity, signature, QR code and logo.
 class StudentIdCardView extends StatelessWidget {
   const StudentIdCardView({super.key, required this.card, this.photoKey, this.hideShared = false});
 
@@ -68,15 +68,15 @@ class StudentIdCardView extends StatelessWidget {
             const SizedBox(height: 4),
             label(card.signerName!),
           ],
-          if (card.logos.isNotEmpty) ...[
+          if (card.qrCode != null || card.logo != null) ...[
             divider,
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                for (final (i, logo) in card.logos.indexed) ...[
-                  if (i > 0) const SizedBox(width: 20),
-                  Image.memory(logo, height: 44, fit: BoxFit.contain),
-                ],
+                if (card.qrCode != null) Image.memory(card.qrCode!, width: 96, height: 96, fit: BoxFit.contain, filterQuality: FilterQuality.none),
+                if (card.qrCode != null && card.logo != null) const SizedBox(width: 24),
+                if (card.logo != null) Flexible(child: Image.memory(card.logo!, height: 64, fit: BoxFit.contain)),
               ],
             ),
           ],
