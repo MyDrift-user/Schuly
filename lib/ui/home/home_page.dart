@@ -18,7 +18,6 @@ import '../dashboard/tab_requests.dart';
 import '../documents/documents_page.dart';
 import '../grades/grade_math.dart';
 import '../timetable/day_schedule.dart';
-import '../timetable/entry_style.dart';
 import '../timetable/timeline_row.dart';
 
 class HomePage extends StatelessWidget {
@@ -124,14 +123,6 @@ class HomePage extends StatelessWidget {
         };
 
     List<Widget> section(HomeSection s) => switch (s) {
-          HomeSection.hero => [
-              NowTicker(
-                builder: (context, now) {
-                  final card = _NowCard(items: buildDaySchedule(todayEntries), now: now);
-                  return card.isEmpty(now) ? const SizedBox.shrink() : Padding(padding: const EdgeInsets.only(bottom: 16), child: card);
-                },
-              ),
-            ],
           HomeSection.tiles => [
               if (prefs.homeTiles.isNotEmpty)
                 Padding(
@@ -316,113 +307,5 @@ class _Countdown extends StatelessWidget {
     final typography = context.theme.typography;
     return Text(countdown(date),
         style: typography.sm.copyWith(color: colors.mutedForeground, fontWeight: FontWeight.w600));
-  }
-}
-
-/// The hero at the top of the home page: what is happening right now, or
-/// what comes next.
-class _NowCard extends StatelessWidget {
-  final List<DayItem> items;
-  final DateTime now;
-  const _NowCard({required this.items, required this.now});
-
-  bool isEmpty(DateTime now) => currentItem(items, now) is! LessonItem && !items.whereType<LessonItem>().any((l) => l.start.isAfter(now));
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = context.theme.colors;
-    final typography = context.theme.typography;
-
-    final current = currentItem(items, now);
-    final upcoming = items.whereType<LessonItem>().where((l) => l.start.isAfter(now)).toList();
-
-    LessonItem? lesson;
-    String label;
-    Accent accent;
-    IconData icon;
-    double? progress;
-    String trailing;
-
-    if (current is LessonItem) {
-      lesson = current;
-      final style = entryStyle(context, current.entry.entryType);
-      label = 'Now';
-      accent = style.accent;
-      icon = style.icon;
-      final total = current.end.difference(current.start).inSeconds;
-      progress = total <= 0 ? null : (now.difference(current.start).inSeconds / total).clamp(0.0, 1.0);
-      trailing = '${current.remainingMinutesAt(now)} min left';
-    } else if (upcoming.isNotEmpty) {
-      lesson = upcoming.first;
-      final style = entryStyle(context, lesson.entry.entryType);
-      final mins = lesson.start.difference(now).inMinutes;
-      label = current is BreakItem ? (current.isLunch ? 'Lunch break · up next' : 'Break · up next') : 'Up next';
-      accent = style.accent;
-      icon = style.icon;
-      trailing = mins < 1 ? 'starting' : (mins < 60 ? 'in $mins min' : 'at ${formatHm(lesson.start)}');
-    } else {
-      return const SizedBox.shrink();
-    }
-
-    final description = lesson.entry.description;
-    final meta = [
-      '${formatHm(lesson.start)} - ${formatHm(lesson.end)}',
-      [lesson.entry.place, description == null ? null : stripShortCode(description)].where((s) => s != null && s.isNotEmpty).join(', '),
-    ].where((s) => s.isNotEmpty).join(' · ');
-    final title = lesson.entry.title.isNotEmpty ? lesson.entry.title : entryStyle(context, lesson.entry.entryType).label;
-    final barColor = lesson.entry.entryType == AgendaEntryType.lesson ? subjectAccent(title).color : accent.color;
-
-    return _HeroCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(icon, size: 16, color: colors.primaryForeground),
-              const SizedBox(width: 6),
-              Text(label.toUpperCase(),
-                  style: typography.xs.copyWith(
-                      color: colors.primaryForeground, fontWeight: FontWeight.w700, letterSpacing: 0.6)),
-              const Spacer(),
-              Text(trailing,
-                  style: typography.sm.copyWith(color: colors.primaryForeground, fontWeight: FontWeight.w700)),
-            ],
-          ),
-          const SizedBox(height: 10),
-          Text(title,
-              style: typography.xl.copyWith(color: colors.primaryForeground, fontWeight: FontWeight.w800, height: 1.15)),
-          if (meta.isNotEmpty) ...[
-            const SizedBox(height: 4),
-            Text(meta, style: typography.sm.copyWith(color: colors.primaryForeground.withValues(alpha: 0.7))),
-          ],
-          if (progress != null) ...[
-            const SizedBox(height: 14),
-            FDeterminateProgress(
-              value: progress,
-              style: (s) => s.copyWith(
-                constraints: const BoxConstraints.tightFor(height: 6),
-                trackDecoration: BoxDecoration(color: colors.primaryForeground.withValues(alpha: 0.18), borderRadius: BorderRadius.circular(999)),
-                fillDecoration: BoxDecoration(color: barColor, borderRadius: BorderRadius.circular(999)),
-              ),
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-}
-
-class _HeroCard extends StatelessWidget {
-  final Widget child;
-  const _HeroCard({required this.child});
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = context.theme.colors;
-    return Container(
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(color: colors.primary, borderRadius: context.theme.style.borderRadius),
-      child: child,
-    );
   }
 }

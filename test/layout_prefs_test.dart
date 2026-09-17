@@ -14,14 +14,14 @@ void main() {
   test('json round trip keeps order, hidden set and options', () {
     final p = LayoutPrefs.instance;
     p.applyJson({
-      'homeOrder': ['grades', 'hero', 'tiles'],
+      'homeOrder': ['grades', 'today', 'tiles'],
       'homeHidden': ['holiday'],
       'homeTiles': ['documents', 'average'],
       'timeColumn': 'right',
       'dayStrip': 'bottom',
       'absencesTiles': true,
     });
-    expect(p.homeOrder.take(3), [HomeSection.grades, HomeSection.hero, HomeSection.tiles]);
+    expect(p.homeOrder.take(3), [HomeSection.grades, HomeSection.today, HomeSection.tiles]);
     expect(p.homeOrder.length, HomeSection.values.length);
     expect(p.homeHidden, {HomeSection.holiday});
     expect(p.homeTiles, [HomeTile.documents, HomeTile.average]);

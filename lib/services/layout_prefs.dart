@@ -4,7 +4,6 @@ import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 enum HomeSection {
-  hero('Now / up next'),
   tiles('Summary tiles'),
   today('Today'),
   tests('Upcoming tests'),
