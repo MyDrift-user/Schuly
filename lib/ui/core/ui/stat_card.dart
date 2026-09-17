@@ -18,7 +18,7 @@ class StatCard extends StatelessWidget {
     final colors = context.theme.colors;
     final typography = context.theme.typography;
     final card = Container(
-      padding: const EdgeInsets.fromLTRB(14, 12, 12, 12),
+      padding: const EdgeInsets.fromLTRB(12, 10, 10, 10),
       decoration: BoxDecoration(
         color: colors.background,
         border: Border.all(color: colors.border),
@@ -27,12 +27,12 @@ class StatCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(icon, size: 18, color: accent == Accent.neutral ? colors.mutedForeground : accent.color),
-          const SizedBox(height: 10),
+          Icon(icon, size: 16, color: accent == Accent.neutral ? colors.mutedForeground : accent.color),
+          const SizedBox(height: 6),
           Text(value,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: typography.xl.copyWith(fontWeight: FontWeight.w700, height: 1.1)),
+              style: typography.lg.copyWith(fontWeight: FontWeight.w700, height: 1.1)),
           const SizedBox(height: 2),
           Text(label,
               maxLines: 1,

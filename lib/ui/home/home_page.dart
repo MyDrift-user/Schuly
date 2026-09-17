@@ -9,7 +9,6 @@ import '../authenticator/authenticator_vault_screen.dart';
 import '../core/dates.dart';
 import '../core/grade_color.dart';
 import '../core/ui/accents.dart';
-import '../core/ui/empty_state.dart';
 import '../core/ui/chips.dart';
 import '../core/ui/now_ticker.dart';
 import '../core/ui/section_header.dart';
@@ -46,7 +45,7 @@ class HomePage extends StatelessWidget {
         .where((a) =>
             a.entryType == AgendaEntryType.test &&
             !dayOf(a.date).isBefore(today) &&
-            daysBetween(today, a.date) <= 21)
+            daysBetween(today, a.date) <= 7)
         .toList()
       ..sort((a, b) => a.date.compareTo(b.date));
 
@@ -63,7 +62,11 @@ class HomePage extends StatelessWidget {
         if (db == null) return -1;
         return db.compareTo(da);
       });
-    final latestGrades = graded.take(4).toList();
+    // Only what changed lately; the grades tab has the rest.
+    final latestGrades = graded.where((e) {
+      final d = examById[e.key]?.date;
+      return d != null && daysBetween(fromApiDate(d), today) <= 14;
+    }).take(3).toList();
 
     final byClass = <String, List<ExamDto>>{};
     for (final e in graded) {
@@ -72,7 +75,8 @@ class HomePage extends StatelessWidget {
     }
     final average = overallAverage(byClass, myGrades, GradeSettings.instance);
 
-    final recentAbsences = svc.absences.toList()..sort((a, b) => b.from.compareTo(a.from));
+    final recentAbsences = svc.absences.where((a) => daysBetween(a.from, today) <= 14).toList()..sort((a, b) => b.from.compareTo(a.from));
+    final holidaySoon = nextHoliday != null && daysBetween(today, nextHoliday.date) <= 21;
     final firstName = svc.me?.firstName.trim();
     final prefs = LayoutPrefs.instance;
 
@@ -137,7 +141,7 @@ class HomePage extends StatelessWidget {
                     final items = upcomingItems(buildDaySchedule(todayEntries), now);
                     if (items.isEmpty) return const SizedBox.shrink();
                     return Padding(
-                      padding: const EdgeInsets.only(bottom: 24),
+                      padding: const EdgeInsets.only(bottom: 20),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
@@ -161,7 +165,7 @@ class HomePage extends StatelessWidget {
                 FTileGroup(
                   divider: FItemDivider.full,
                   children: [
-                    for (final a in upcomingTests.take(4))
+                    for (final a in upcomingTests.take(3))
                       FTile(
                         prefix: DateChip(a.date),
                         title: Text(a.title.isNotEmpty ? a.title : 'Test'),
@@ -170,24 +174,17 @@ class HomePage extends StatelessWidget {
                       ),
                   ],
                 ),
-                const SizedBox(height: 24),
+                const SizedBox(height: 20),
               ],
             ],
           HomeSection.grades => [
-              SectionHeader(
-                icon: FIcons.chartColumn,
-                title: 'Latest grades',
-                actionLabel: 'All grades',
-                onAction: () => TabRequests.request(DashboardTab.grades),
-              ),
-              if (latestGrades.isEmpty)
-                const EmptyState(
-                  compact: true,
-                  icon: FIcons.sparkles,
-                  title: 'No grades yet',
-                  message: 'New grades show up here as soon as they are entered.',
-                )
-              else
+              if (latestGrades.isNotEmpty) ...[
+                SectionHeader(
+                  icon: FIcons.chartColumn,
+                  title: 'New grades',
+                  actionLabel: 'All grades',
+                  onAction: () => TabRequests.request(DashboardTab.grades),
+                ),
                 FTileGroup(
                   divider: FItemDivider.full,
                   children: [
@@ -205,10 +202,11 @@ class HomePage extends StatelessWidget {
                       ),
                   ],
                 ),
-              const SizedBox(height: 24),
+                const SizedBox(height: 20),
+              ],
             ],
           HomeSection.holiday => [
-              if (nextHoliday != null) ...[
+              if (holidaySoon) ...[
                 const SectionHeader(icon: FIcons.treePalm, title: 'Next holiday'),
                 FTileGroup(
                   divider: FItemDivider.full,
@@ -221,29 +219,21 @@ class HomePage extends StatelessWidget {
                     ),
                   ],
                 ),
-                const SizedBox(height: 24),
+                const SizedBox(height: 20),
               ],
             ],
           HomeSection.absences => [
-              SectionHeader(
-                icon: FIcons.calendarOff,
-                title: 'Recent absences',
-                actionLabel: 'All',
-                onAction: () => TabRequests.request(DashboardTab.absences),
-              ),
-              if (recentAbsences.isEmpty)
-                const EmptyState(
-                  compact: true,
-                  icon: FIcons.badgeCheck,
-                  accent: Accent.green,
-                  title: 'No absences',
-                  message: 'Perfect attendance so far.',
-                )
-              else
+              if (recentAbsences.isNotEmpty) ...[
+                SectionHeader(
+                  icon: FIcons.calendarOff,
+                  title: 'Recent absences',
+                  actionLabel: 'All',
+                  onAction: () => TabRequests.request(DashboardTab.absences),
+                ),
                 FTileGroup(
                   divider: FItemDivider.full,
                   children: [
-                    for (final a in recentAbsences.take(3))
+                    for (final a in recentAbsences.take(2))
                       FTile(
                         prefix: DateChip(a.from, accent: a.type == AbsenceType.delay ? Accent.amber : Accent.red),
                         title: Text(a.reason.isNotEmpty ? a.reason : 'Absence'),
@@ -252,7 +242,8 @@ class HomePage extends StatelessWidget {
                       ),
                   ],
                 ),
-              const SizedBox(height: 24),
+                const SizedBox(height: 20),
+              ],
             ],
         };
 
@@ -263,23 +254,20 @@ class HomePage extends StatelessWidget {
         padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
         children: [
           Padding(
-            padding: const EdgeInsets.fromLTRB(4, 0, 4, 16),
+            padding: const EdgeInsets.fromLTRB(4, 0, 4, 12),
             child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.baseline,
+              textBaseline: TextBaseline.alphabetic,
               children: [
                 Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        firstName == null || firstName.isEmpty ? greeting(DateTime.now()) : '${greeting(DateTime.now())}, $firstName',
-                        style: typography.xl2.copyWith(fontWeight: FontWeight.w800, height: 1.1),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(formatDayLong(today), style: typography.sm.copyWith(color: colors.mutedForeground)),
-                    ],
+                  child: Text(
+                    firstName == null || firstName.isEmpty ? greeting(DateTime.now()) : '${greeting(DateTime.now())}, $firstName',
+                    style: typography.lg.copyWith(fontWeight: FontWeight.w800),
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
+                const SizedBox(width: 12),
+                Text(formatDayShort(today), style: typography.sm.copyWith(color: colors.mutedForeground)),
               ],
             ),
           ),
