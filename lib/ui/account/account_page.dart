@@ -14,6 +14,7 @@ import '../../services/toast_service.dart';
 import '../authenticator/authenticator_vault_screen.dart';
 import '../core/dates.dart';
 import '../core/ui/accents.dart';
+import '../core/ui/dense_tile.dart';
 import '../core/ui/section_header.dart';
 import '../documents/documents_page.dart';
 import '../settings/settings_screen.dart';
@@ -447,9 +448,9 @@ class _InfoTile extends StatelessWidget with FTileMixin {
     final colors = context.theme.colors;
     final has = value?.isNotEmpty ?? false;
     return FTile(
-      prefix: Icon(icon),
-      title: Text(label),
-      subtitle: Text(has ? value! : 'Not set', style: has ? null : TextStyle(color: colors.mutedForeground)),
+      style: denseTileStyle,
+      prefix: Icon(icon, size: 18, color: colors.mutedForeground),
+      title: Text(has ? value! : 'No $label', maxLines: 1, overflow: TextOverflow.ellipsis, style: has ? null : TextStyle(color: colors.mutedForeground)),
     );
   }
 }

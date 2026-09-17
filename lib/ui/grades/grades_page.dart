@@ -10,6 +10,7 @@ import '../core/grade_color.dart';
 import '../core/ui/accents.dart';
 import '../core/ui/empty_state.dart';
 import '../core/ui/chips.dart';
+import '../core/ui/dense_tile.dart';
 import '../core/ui/section_header.dart';
 import '../core/ui/stat_card.dart';
 import 'grade_math.dart';
@@ -238,13 +239,10 @@ class _ClassSection extends StatelessWidget {
           divider: FItemDivider.full,
           children: [
             for (final e in exams)
-              FTile(
-                prefix: e.date != null ? DateChip(fromApiDate(e.date!)) : const Icon(FIcons.fileText),
-                title: Text(e.name),
-                subtitle: Text([
-                  if (isGraded(e.classAverage)) 'class Ø ${formatGrade(e.classAverage)}',
-                  if ((myGrades[e.id]?.weighting ?? 1) != 1) 'weight ${formatGrade(myGrades[e.id]!.weighting ?? 1)}',
-                ].join(' · ')),
+              DenseTile(
+                prefix: e.date != null ? DenseDate(fromApiDate(e.date!)) : const Icon(FIcons.fileText, size: 18),
+                title: e.name,
+                trailing: isGraded(e.classAverage) ? 'Ø ${formatGrade(e.classAverage)}' : null,
                 suffix: GradePill(myGrades[e.id]?.score),
                 onPress: () => _showExamDetail(context, e, myGrades[e.id]),
               ),
