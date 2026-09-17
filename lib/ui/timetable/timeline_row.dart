@@ -10,7 +10,7 @@ import 'entry_style.dart';
 import 'lesson_tile.dart';
 
 class TimelineRow extends StatelessWidget {
-  const TimelineRow({super.key, required this.item, required this.now, this.isFirst = false, required this.isLast, this.dimPast = false, this.side = TimeColumnSide.left});
+  const TimelineRow({super.key, required this.item, required this.now, this.isFirst = false, required this.isLast, this.dimPast = false, this.side = TimeColumnSide.left, this.dense = false});
 
   final DayItem item;
   final DateTime now;
@@ -23,6 +23,8 @@ class TimelineRow extends StatelessWidget {
 
   /// Which side the time column and rail sit on.
   final TimeColumnSide side;
+
+  final bool dense;
 
   @override
   Widget build(BuildContext context) {
@@ -44,12 +46,12 @@ class TimelineRow extends StatelessWidget {
 
     final left = side == TimeColumnSide.left;
     final tile = Padding(
-      padding: EdgeInsets.only(left: left ? (current ? 82 : 74) : 0, right: left ? 0 : (current ? 82 : 74), bottom: isLast ? 0 : 8),
+      padding: EdgeInsets.only(left: left ? (current ? 82 : 74) : 0, right: left ? 0 : (current ? 82 : 74), bottom: isLast ? 0 : (dense ? 6 : 8)),
       child: Opacity(
         opacity: past && !current ? 0.6 : 1,
         child: switch (item) {
-          LessonItem lesson => LessonTile(item: lesson, now: now, showTime: false),
-          BreakItem brk => BreakCard(item: brk, now: now, showTime: false),
+          LessonItem lesson => LessonTile(item: lesson, now: now, showTime: false, dense: dense),
+          BreakItem brk => BreakCard(item: brk, now: now, showTime: false, dense: dense),
         },
       ),
     );

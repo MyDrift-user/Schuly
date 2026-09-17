@@ -7,7 +7,7 @@ import 'day_schedule.dart';
 /// A gap between two lessons. Same tile language as [LessonTile] but visibly
 /// slimmer and muted, since breaks are secondary information.
 class BreakCard extends StatelessWidget with FTileMixin {
-  const BreakCard({super.key, required this.item, required this.now, this.showTime = true});
+  const BreakCard({super.key, required this.item, required this.now, this.showTime = true, this.dense = false});
 
   final BreakItem item;
   final DateTime now;
@@ -15,6 +15,8 @@ class BreakCard extends StatelessWidget with FTileMixin {
   /// Whether the time range is appended to the label. The timetable's
   /// timeline already shows it in its own column.
   final bool showTime;
+
+  final bool dense;
 
   @override
   Widget build(BuildContext context) {
@@ -44,7 +46,7 @@ class BreakCard extends StatelessWidget with FTileMixin {
     return FTile(
       style: (style) => style.copyWith(
         backgroundColor: FWidgetStateMap.all(colors.muted.withValues(alpha: 0.4)),
-        contentStyle: (content) => content.copyWith(padding: const EdgeInsetsDirectional.fromSTEB(16, 8, 12, 8)),
+        contentStyle: (content) => content.copyWith(padding: dense ? const EdgeInsetsDirectional.fromSTEB(12, 5, 10, 5) : const EdgeInsetsDirectional.fromSTEB(16, 8, 12, 8)),
       ),
       prefix: Icon(item.isLunch ? FIcons.utensils : FIcons.coffee, size: 16, color: colors.mutedForeground),
       title: title,

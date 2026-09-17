@@ -6,13 +6,14 @@ import 'package:schuly_api/schuly_api.dart' show AgendaEntryType;
 import '../../l10n/app_localizations.dart';
 import '../core/ui/accents.dart';
 import '../core/ui/chips.dart';
+import '../core/ui/dense_tile.dart';
 import 'day_schedule.dart';
 import 'entry_style.dart';
 
 /// A lesson, test or event as a tile: tinted icon, title, one-line subtitle
 /// and, while it is running, the remaining time.
 class LessonTile extends StatelessWidget with FTileMixin {
-  const LessonTile({super.key, required this.item, required this.now, this.showTime = true, this.onPress});
+  const LessonTile({super.key, required this.item, required this.now, this.showTime = true, this.onPress, this.dense = false});
 
   final LessonItem item;
   final DateTime now;
@@ -22,6 +23,9 @@ class LessonTile extends StatelessWidget with FTileMixin {
   final bool showTime;
 
   final VoidCallback? onPress;
+
+  /// One line: title and room, remaining minutes as trailing text.
+  final bool dense;
 
   @override
   Widget build(BuildContext context) {
@@ -50,6 +54,22 @@ class LessonTile extends StatelessWidget with FTileMixin {
       ]));
     } else {
       subtitle = meta.isEmpty ? null : Text(meta);
+    }
+
+    if (dense) {
+      final place = item.entry.place;
+      return FTile(
+        style: denseTileStyle,
+        prefix: item.entry.entryType == AgendaEntryType.lesson ? SubjectChip(title, highlighted: current, size: 30) : Icon(style.icon, size: 18, color: style.accent.color),
+        title: Text(
+          place == null || place.isEmpty ? title : '$title · $place',
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: current ? TextStyle(color: accent.color, fontWeight: FontWeight.w700) : null,
+        ),
+        details: remaining == null ? null : Text(remaining, style: typography.sm.copyWith(color: accent.color, fontWeight: FontWeight.w600)),
+        onPress: onPress,
+      );
     }
 
     return FTile(

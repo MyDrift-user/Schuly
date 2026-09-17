@@ -10,6 +10,7 @@ import '../core/dates.dart';
 import '../core/grade_color.dart';
 import '../core/ui/accents.dart';
 import '../core/ui/chips.dart';
+import '../core/ui/dense_tile.dart';
 import '../core/ui/now_ticker.dart';
 import '../core/ui/section_header.dart';
 import '../core/ui/stat_card.dart';
@@ -152,7 +153,7 @@ class HomePage extends StatelessWidget {
                             onAction: () => TabRequests.request(DashboardTab.timetable),
                           ),
                           for (var i = 0; i < items.length; i++)
-                            TimelineRow(item: items[i], now: now, isFirst: i == 0, isLast: i == items.length - 1, side: prefs.timeColumn),
+                            TimelineRow(item: items[i], now: now, isFirst: i == 0, isLast: i == items.length - 1, side: prefs.timeColumn, dense: true),
                         ],
                       ),
                     );
@@ -166,12 +167,7 @@ class HomePage extends StatelessWidget {
                   divider: FItemDivider.full,
                   children: [
                     for (final a in upcomingTests.take(3))
-                      FTile(
-                        prefix: DateChip(a.date),
-                        title: Text(a.title.isNotEmpty ? a.title : 'Test'),
-                        subtitle: Text([formatTime(a.date), if (a.place?.isNotEmpty ?? false) a.place!].join(' · ')),
-                        details: _Countdown(a.date),
-                      ),
+                      DenseTile(prefix: DenseDate(a.date), title: a.title.isNotEmpty ? a.title : 'Test', trailing: countdown(a.date)),
                   ],
                 ),
                 const SizedBox(height: 20),
@@ -189,14 +185,9 @@ class HomePage extends StatelessWidget {
                   divider: FItemDivider.full,
                   children: [
                     for (final entry in latestGrades)
-                      FTile(
-                        prefix: SubjectChip(classNameById[examById[entry.key]?.classId] ?? '?'),
-                        title: Text(examById[entry.key]?.name ?? 'Exam'),
-                        subtitle: Text([
-                          if (classNameById[examById[entry.key]?.classId]?.isNotEmpty ?? false)
-                            classNameById[examById[entry.key]?.classId]!,
-                          if (examById[entry.key]?.date != null) formatDate(fromApiDate(examById[entry.key]!.date!)),
-                        ].join(' · ')),
+                      DenseTile(
+                        prefix: SubjectChip(classNameById[examById[entry.key]?.classId] ?? '?', size: 30),
+                        title: examById[entry.key]?.name ?? 'Exam',
                         suffix: GradePill(entry.value.score),
                         onPress: () => TabRequests.request(DashboardTab.grades),
                       ),
@@ -211,11 +202,10 @@ class HomePage extends StatelessWidget {
                 FTileGroup(
                   divider: FItemDivider.full,
                   children: [
-                    FTile(
-                      prefix: DateChip(nextHoliday.date),
-                      title: Text(nextHoliday.title.isNotEmpty ? nextHoliday.title : 'Holiday'),
-                      subtitle: Text(formatDayRange(nextHoliday.date, nextHoliday.endDate)),
-                      details: _Countdown(nextHoliday.date),
+                    DenseTile(
+                      prefix: DenseDate(nextHoliday.date),
+                      title: nextHoliday.title.isNotEmpty ? nextHoliday.title : 'Holiday',
+                      trailing: countdown(nextHoliday.date),
                     ),
                   ],
                 ),
@@ -234,10 +224,9 @@ class HomePage extends StatelessWidget {
                   divider: FItemDivider.full,
                   children: [
                     for (final a in recentAbsences.take(2))
-                      FTile(
-                        prefix: DateChip(a.from, accent: a.type == AbsenceType.delay ? Accent.amber : Accent.red),
-                        title: Text(a.reason.isNotEmpty ? a.reason : 'Absence'),
-                        subtitle: Text(formatDayRange(a.from, a.until)),
+                      DenseTile(
+                        prefix: DenseDate(a.from, color: a.type == AbsenceType.delay ? Accent.amber.color : Accent.red.color),
+                        title: a.reason.isNotEmpty ? a.reason : 'Absence',
                         onPress: () => TabRequests.request(DashboardTab.absences),
                       ),
                   ],
@@ -282,18 +271,5 @@ class HomePage extends StatelessWidget {
     final days = daysBetween(today, d);
     if (days <= 0) return 'Now';
     return '${days}d';
-  }
-}
-
-class _Countdown extends StatelessWidget {
-  final DateTime date;
-  const _Countdown(this.date);
-
-  @override
-  Widget build(BuildContext context) {
-    final colors = context.theme.colors;
-    final typography = context.theme.typography;
-    return Text(countdown(date),
-        style: typography.sm.copyWith(color: colors.mutedForeground, fontWeight: FontWeight.w600));
   }
 }
