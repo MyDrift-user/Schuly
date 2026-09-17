@@ -45,9 +45,12 @@ class DenseDate extends StatelessWidget {
     final l = date.toLocal();
     const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
     return SizedBox(
-      width: 50,
+      width: 58,
       child: Text(
         '${days[l.weekday - 1]} ${l.day}',
+        maxLines: 1,
+        softWrap: false,
+        overflow: TextOverflow.visible,
         style: typography.sm.copyWith(color: color ?? colors.mutedForeground, fontWeight: FontWeight.w600, fontFeatures: const [FontFeature.tabularFigures()]),
       ),
     );
