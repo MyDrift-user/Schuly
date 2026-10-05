@@ -97,7 +97,7 @@ class _ClassDetailScreenState extends State<ClassDetailScreen> {
             ]),
             const SizedBox(height: 24),
             if (exams.isNotEmpty) ...[
-              const SectionHeader(icon: FIcons.fileText, title: 'Exams'),
+              SectionHeader(icon: FIcons.fileText, title: 'Exams (${exams.length})'),
               FTileGroup(
                 divider: FItemDivider.full,
                 children: [
@@ -105,15 +105,14 @@ class _ClassDetailScreenState extends State<ClassDetailScreen> {
                     FTile(
                       prefix: e.date != null ? DateChip(fromApiDate(e.date!)) : const Icon(FIcons.fileText),
                       title: Text(e.name),
-                      subtitle: isGraded(e.classAverage) ? Text('class Ø ${formatGrade(e.classAverage)}') : null,
-                      suffix: isGraded(e.classAverage) ? GradePill(e.classAverage) : null,
+                      details: isGraded(e.classAverage) ? Text('class Ø ${formatGrade(e.classAverage)}') : null,
                     ),
                 ],
               ),
               const SizedBox(height: 24),
             ],
             if (agenda.isNotEmpty) ...[
-              const SectionHeader(icon: FIcons.calendarDays, title: 'Upcoming'),
+              SectionHeader(icon: FIcons.calendarDays, title: 'Upcoming lessons (${agenda.length})'),
               FTileGroup(
                 divider: FItemDivider.full,
                 children: [

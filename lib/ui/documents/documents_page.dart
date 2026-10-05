@@ -164,14 +164,13 @@ class _FolderSectionState extends State<_FolderSection> {
   @override
   Widget build(BuildContext context) {
     final colors = context.theme.colors;
-    final isReports = widget.name == 'Report cards';
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
       child: FTileGroup(
         divider: FItemDivider.full,
         children: [
           FTile(
-            prefix: Icon(isReports ? FIcons.award : (_open ? FIcons.folderOpen : FIcons.folder)),
+            prefix: Icon(_open ? FIcons.folderOpen : FIcons.folder),
             title: Text(widget.name),
             subtitle: Text('${widget.files.length} ${widget.files.length == 1 ? 'file' : 'files'}'),
             suffix: AnimatedRotation(
@@ -190,7 +189,7 @@ class _FolderSectionState extends State<_FolderSection> {
                   if (doc.enteredBy?.isNotEmpty ?? false) doc.enteredBy,
                   if (doc.fileSizeBytes != null) _fmtSize(doc.fileSizeBytes!),
                 ].whereType<String>().where((s) => s.isNotEmpty).join(' · ')),
-                suffix: Icon(FIcons.download, color: colors.mutedForeground),
+                suffix: Icon(FIcons.externalLink, color: colors.mutedForeground),
                 onPress: widget.downloadingId == null ? () => widget.onOpen(doc) : null,
               ),
         ],

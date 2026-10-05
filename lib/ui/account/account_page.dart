@@ -373,7 +373,7 @@ class _AccountPageState extends State<AccountPage> with SingleTickerProviderStat
               _InfoTile(icon: FIcons.mail, label: 'Email', value: me?.email),
               _InfoTile(icon: FIcons.phone, label: 'Phone', value: me?.phoneNumber),
               _InfoTile(icon: FIcons.mapPin, label: 'Address', value: address),
-              _InfoTile(icon: FIcons.cake, label: 'Birthday', value: me?.birthday == null ? null : formatDate(fromApiDate(me!.birthday!))),
+              _InfoTile(icon: FIcons.cake, label: 'Birthday', value: me?.birthday == null ? null : 'Born ${formatDate(fromApiDate(me!.birthday!))}'),
             ],
           ),
           if (hasPlugin) ...[

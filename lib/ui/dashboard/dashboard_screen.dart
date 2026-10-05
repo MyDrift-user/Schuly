@@ -282,6 +282,7 @@ class _TopBar extends StatelessWidget {
             child: Row(
               children: [
                 FTappable(
+                  semanticsLabel: 'Accounts and settings',
                   onPress: onAvatar,
                   child: Container(
                     padding: const EdgeInsets.all(2),
@@ -316,7 +317,7 @@ class _TopBar extends StatelessWidget {
                 ],
                 if (onCustomize != null) ...[
                   const SizedBox(width: 8),
-                  FButton.icon(style: FButtonStyle.ghost(), onPress: onCustomize, child: const Icon(FIcons.slidersHorizontal)),
+                  Semantics(label: 'Layout', button: true, child: FButton.icon(style: FButtonStyle.ghost(), onPress: onCustomize, child: const Icon(FIcons.slidersHorizontal))),
                 ],
               ],
             ),

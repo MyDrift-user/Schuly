@@ -30,7 +30,7 @@ class TeachersScreen extends StatelessWidget {
                 for (final t in teachers)
                   FTile(
                     prefix: _Initials(name: '${t.firstName} ${t.lastName}'),
-                    title: Text('${t.lastName} ${t.firstName}'.trim()),
+                    title: Text('${t.firstName} ${t.lastName}'.trim()),
                     subtitle: t.code.isNotEmpty ? Text(t.code) : null,
                     suffix: (t.email?.isNotEmpty ?? false) ? Icon(FIcons.mail, color: colors.mutedForeground) : null,
                     onPress: (t.email?.isNotEmpty ?? false) ? () => launchUrl(Uri(scheme: 'mailto', path: t.email)) : null,

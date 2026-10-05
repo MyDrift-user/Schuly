@@ -178,7 +178,7 @@ class _TimetablePageState extends State<TimetablePage> {
                       icon: FIcons.treePalm,
                       accent: Accent.orange,
                       title: holidays.first.title.isNotEmpty ? holidays.first.title : t.entryTypeHoliday,
-                      message: formatDayRange(holidays.first.date, holidays.first.endDate),
+                      message: formatDateRange(holidays.first.date, holidays.first.endDate),
                     )
                   else
                     EmptyState(
@@ -273,6 +273,7 @@ class _CalendarSheet extends StatelessWidget {
           const SizedBox(height: 8),
           Center(
             child: FCalendar(
+              style: (s) => s.copyWith(dayPickerStyle: (d) => d.copyWith(startDayOfWeek: 1)),
               control: FCalendarControl.managedDate(initial: selected, onChange: (d) => d == null ? null : Navigator.of(context).pop(d)),
               start: start,
               end: end,

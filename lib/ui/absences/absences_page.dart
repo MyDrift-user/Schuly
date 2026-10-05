@@ -1,6 +1,7 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:forui/forui.dart';
+import 'package:intl/intl.dart';
 import 'package:schuly_api/schuly_api.dart';
 
 import '../../services/api_client.dart';
@@ -40,7 +41,7 @@ class AbsencesPage extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         prefix: const Icon(FIcons.plus),
         onPress: svc.me == null ? null : () => _openForm(context),
-        child: const Text('Report'),
+        child: const Text('Report absence'),
       ),
       body: RefreshIndicator(
         onRefresh: svc.refresh,
@@ -81,8 +82,15 @@ class AbsencesPage extends StatelessWidget {
                       FTile(
                         prefix: DateChip(a.from, accent: a.type == AbsenceType.delay ? Accent.amber : Accent.red),
                         title: Text(a.reason.isNotEmpty ? a.reason : 'Absence'),
-                        subtitle: Text(formatDayRange(a.from, a.until)),
-                        suffix: _TypeBadge(a.type),
+                        subtitle: isSameDay(a.from, a.until) ? null : Text('until ${formatDate(a.until)}'),
+                        suffix: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            _TypeBadge(a.type),
+                            const SizedBox(width: 8),
+                            Icon(FIcons.chevronRight, size: 18, color: context.theme.colors.mutedForeground),
+                          ],
+                        ),
                         onPress: () => _openForm(context, existing: a),
                       ),
                   ],
@@ -171,7 +179,7 @@ class _AbsenceFormState extends State<_AbsenceForm> {
             ..reason = _reason.text.trim()
             ..type = _type
             ..from = ApiTime.utcDate(_from)
-            ..until = ApiTime.utcDate(_until)
+            ..until = ApiTime.utcDate(_type == AbsenceType.delay ? _from : _until)
             ..schoolUserId = schoolUserId),
         );
       } else {
@@ -181,7 +189,7 @@ class _AbsenceFormState extends State<_AbsenceForm> {
             ..reason = _reason.text.trim()
             ..type = _type
             ..from = ApiTime.utcDate(_from)
-            ..until = ApiTime.utcDate(_until)
+            ..until = ApiTime.utcDate(_type == AbsenceType.delay ? _from : _until)
             ..schoolUserId = existing.schoolUserId),
         );
       }
@@ -285,7 +293,8 @@ class _AbsenceFormState extends State<_AbsenceForm> {
               children: [
                 Expanded(
                   child: FDateField.calendar(
-                    label: const Text('From'),
+                    label: Text(_type == AbsenceType.delay ? 'Date' : 'From'),
+                    format: DateFormat('dd.MM.yyyy'),
                     control: FDateFieldControl.lifted(
                       date: _from,
                       onChange: (d) {
@@ -298,19 +307,22 @@ class _AbsenceFormState extends State<_AbsenceForm> {
                     ),
                   ),
                 ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: FDateField.calendar(
-                    label: const Text('Until'),
-                    control: FDateFieldControl.lifted(
-                      date: _until,
-                      onChange: (d) {
-                        if (d == null) return;
-                        setState(() => _until = d.isBefore(_from) ? _from : d);
-                      },
+                if (_type != AbsenceType.delay) ...[
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: FDateField.calendar(
+                      label: const Text('Until'),
+                      format: DateFormat('dd.MM.yyyy'),
+                      control: FDateFieldControl.lifted(
+                        date: _until,
+                        onChange: (d) {
+                          if (d == null) return;
+                          setState(() => _until = d.isBefore(_from) ? _from : d);
+                        },
+                      ),
                     ),
                   ),
-                ),
+                ],
               ],
             ),
             if (_error != null) ...[
@@ -337,7 +349,7 @@ class _AbsenceFormState extends State<_AbsenceForm> {
                   child: FButton(
                     prefix: _busy ? null : const Icon(FIcons.check),
                     onPress: _busy ? null : _save,
-                    child: Text(_busy ? 'Saving…' : (editing ? 'Save changes' : 'Report absence')),
+                    child: Text(_busy ? 'Saving…' : (editing ? 'Save changes' : (_type == AbsenceType.delay ? 'Report delay' : 'Report absence'))),
                   ),
                 ),
               ],

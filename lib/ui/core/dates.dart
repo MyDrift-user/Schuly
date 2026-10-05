@@ -27,8 +27,8 @@ DateTime fromApiDate(Date d) => DateTime(d.year, d.month, d.day);
 /// "15.09.2026"
 String formatDate(DateTime d) => DateFormat('dd.MM.yyyy').format(d.toLocal());
 
-/// "Mon, 15 Sep"
-String formatDayShort(DateTime d) => DateFormat('EEE, d MMM').format(d.toLocal());
+/// "Mon, 15.09."
+String formatDayShort(DateTime d) => DateFormat('EEE, dd.MM.').format(d.toLocal());
 
 /// "Monday, 15 September"
 String formatDayLong(DateTime d) => DateFormat('EEEE, d MMMM').format(d.toLocal());
@@ -60,11 +60,10 @@ String countdown(DateTime d) {
   return 'in $weeks weeks';
 }
 
-/// "15.09." or "15.09. - 19.09."
+/// "15.09.2026" or "15.09. - 19.09.2026"
 String formatDateRange(DateTime from, DateTime? until) {
-  final f = DateFormat('dd.MM.').format(from.toLocal());
-  if (until == null || isSameDay(from, until)) return f;
-  return '$f - ${DateFormat('dd.MM.').format(until.toLocal())}';
+  if (until == null || isSameDay(from, until)) return formatDate(from);
+  return '${DateFormat('dd.MM.').format(from.toLocal())} - ${formatDate(until)}';
 }
 
 /// "Mon, 15 Sep" or "Mon, 15 Sep - Fri, 19 Sep"

@@ -30,10 +30,12 @@ class AccountsSidebar extends StatelessWidget {
         body: Text('Remove ${school.name}? You can reconnect it later.'),
         actions: [
           FButton(
+            style: FButtonStyle.outline(),
             onPress: () => Navigator.of(dCtx).pop(false),
             child: const Text('Cancel'),
           ),
           FButton(
+            style: FButtonStyle.destructive(),
             onPress: () => Navigator.of(dCtx).pop(true),
             child: const Text('Disconnect'),
           ),

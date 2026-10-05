@@ -298,10 +298,10 @@ List<Widget> absencesLayoutOptions(LayoutPrefs prefs) => [
 Future<void>? showTabCustomizeSheet(BuildContext context, int tab) {
   final prefs = LayoutPrefs.instance;
   return switch (tab) {
-    0 => showCustomizeSheet(context, title: 'Customise home', builder: (_) => homeLayoutOptions(prefs)),
-    1 => showCustomizeSheet(context, title: 'Customise timetable', builder: (_) => timetableLayoutOptions(prefs)),
-    2 => showCustomizeSheet(context, title: 'Customise grades', builder: gradesLayoutOptions),
-    3 => showCustomizeSheet(context, title: 'Customise absences', builder: (_) => absencesLayoutOptions(prefs)),
+    0 => showCustomizeSheet(context, title: 'Home layout', builder: (_) => homeLayoutOptions(prefs)),
+    1 => showCustomizeSheet(context, title: 'Timetable layout', builder: (_) => timetableLayoutOptions(prefs)),
+    2 => showCustomizeSheet(context, title: 'Grades layout', builder: gradesLayoutOptions),
+    3 => showCustomizeSheet(context, title: 'Absences layout', builder: (_) => absencesLayoutOptions(prefs)),
     _ => null,
   };
 }
