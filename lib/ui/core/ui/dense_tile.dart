@@ -31,7 +31,8 @@ class DenseTile extends StatelessWidget with FTileMixin {
   }
 }
 
-/// "Wed 23" in a fixed-width slot, the dense stand-in for a date chip.
+/// "23.09." in a fixed-width slot, the dense stand-in for a date chip. Day
+/// and month, since the weekday alone says nothing in a list spanning weeks.
 class DenseDate extends StatelessWidget {
   const DenseDate(this.date, {super.key, this.color});
 
@@ -43,14 +44,13 @@ class DenseDate extends StatelessWidget {
     final colors = context.theme.colors;
     final typography = context.theme.typography;
     final l = date.toLocal();
-    const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+    String two(int n) => n.toString().padLeft(2, '0');
     return SizedBox(
-      width: 58,
+      width: 52,
       child: Text(
-        '${days[l.weekday - 1]} ${l.day}',
+        '${two(l.day)}.${two(l.month)}.',
         maxLines: 1,
         softWrap: false,
-        overflow: TextOverflow.visible,
         style: typography.sm.copyWith(color: color ?? colors.mutedForeground, fontWeight: FontWeight.w600, fontFeatures: const [FontFeature.tabularFigures()]),
       ),
     );
