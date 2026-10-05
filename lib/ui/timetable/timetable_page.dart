@@ -10,8 +10,8 @@ import '../core/ui/accents.dart';
 import '../core/ui/empty_state.dart';
 import '../core/ui/now_ticker.dart';
 import 'day_schedule.dart';
+import 'day_list.dart';
 import 'day_strip.dart';
-import 'timeline_row.dart';
 
 class TimetablePage extends StatefulWidget {
   const TimetablePage({super.key});
@@ -192,14 +192,7 @@ class _TimetablePageState extends State<TimetablePage> {
                 builder: (context, now) {
                   final items = buildDaySchedule(scheduled);
                   final dayRunning = dayIsToday && items.isNotEmpty && now.isBefore(items.last.end);
-                  return ListView(
-                    physics: const AlwaysScrollableScrollPhysics(),
-                    padding: const EdgeInsets.fromLTRB(8, 4, 16, 24),
-                    children: [
-                      for (var i = 0; i < items.length; i++)
-                        TimelineRow(item: items[i], now: now, isFirst: i == 0, isLast: i == items.length - 1, dimPast: dayRunning, side: prefs.timeColumn),
-                    ],
-                  );
+                  return DayList(items: items, now: now, dayRunning: dayRunning, side: prefs.timeColumn);
                 },
               ),
       );

@@ -227,7 +227,6 @@ class _ClassSection extends StatelessWidget {
               DenseTile(
                 prefix: e.date != null ? DenseDate(fromApiDate(e.date!)) : const Icon(FIcons.fileText, size: 18),
                 title: e.name,
-                trailing: isGraded(e.classAverage) ? 'class Ø ${formatGrade(e.classAverage)}' : null,
                 suffix: GradePill(myGrades[e.id]?.score),
                 onPress: () => _showExamDetail(context, e, myGrades[e.id], subject: title),
               ),
