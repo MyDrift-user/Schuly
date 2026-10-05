@@ -44,17 +44,7 @@ class LessonTile extends StatelessWidget with FTileMixin {
     final title = item.entry.title.isNotEmpty ? item.entry.title : style.label;
     final accent = item.entry.entryType == AgendaEntryType.lesson ? subjectAccent(title) : style.accent;
 
-    // A narrow tile ellipsises "details", so the remaining minutes are folded
-    // into the subtitle there instead. The wide home tile keeps the slot.
-    final Widget? subtitle;
-    if (!showTime && remaining != null) {
-      subtitle = Text.rich(TextSpan(children: [
-        if (meta.isNotEmpty) TextSpan(text: '$meta · '),
-        TextSpan(text: remaining, style: const TextStyle(fontWeight: FontWeight.w600)),
-      ]));
-    } else {
-      subtitle = meta.isEmpty ? null : Text(meta);
-    }
+    final subtitle = meta.isEmpty ? null : Text(meta, maxLines: 1, overflow: TextOverflow.ellipsis);
 
     if (dense) {
       final place = item.entry.place;
@@ -78,14 +68,14 @@ class LessonTile extends StatelessWidget with FTileMixin {
           : Icon(style.icon, color: style.accent.of(context)),
       title: Text(title, style: current ? TextStyle(color: accent.of(context), fontWeight: FontWeight.w700) : null),
       subtitle: subtitle,
-      details: showTime
+      details: remaining != null || showTime
           ? Text(remaining ?? time,
               style: typography.sm.copyWith(
                 fontWeight: FontWeight.w600,
                 color: remaining == null ? colors.mutedForeground : accent.of(context),
                 fontFeatures: const [FontFeature.tabularFigures()],
               ))
-          : (item.entry.entryType != AgendaEntryType.lesson && !current ? _TypeChip(label: style.label, accent: style.accent) : null),
+          : (item.entry.entryType != AgendaEntryType.lesson ? _TypeChip(label: style.label, accent: style.accent) : null),
       onPress: onPress,
     );
   }

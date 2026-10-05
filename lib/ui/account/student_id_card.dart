@@ -45,8 +45,7 @@ class StudentIdCardView extends StatelessWidget {
               child: StudentIdPhoto(key: photoKey, initial: initial, photo: card.photo, photoUrl: card.photoUrl, width: 96, height: 120, radius: 14),
             ),
           ),
-          const SizedBox(height: 12),
-          Text(card.title, textAlign: TextAlign.center, style: typography.lg.copyWith(fontWeight: FontWeight.w800, color: colors.primary)),
+          const SizedBox(height: 4),
           divider,
           field(card.schoolLabel, card.schoolName),
           divider,
@@ -228,7 +227,7 @@ class _StudentIdOverlayState extends State<StudentIdOverlay> {
                     child: Stack(
                       alignment: Alignment.center,
                       children: [
-                        Text('Student ID', style: typography.xl.copyWith(fontWeight: FontWeight.w700)),
+                        Text(widget.card.title, style: typography.xl.copyWith(fontWeight: FontWeight.w700)),
                         Positioned(left: 8, child: FButton.icon(style: FButtonStyle.ghost(), onPress: widget.onClose, child: const Icon(FIcons.chevronDown))),
                       ],
                     ),
@@ -265,7 +264,7 @@ class _StudentIdOverlayState extends State<StudentIdOverlay> {
                     color: colors.background,
                     border: Border.all(color: colors.border),
                     borderRadius: BorderRadius.lerp(context.theme.style.borderRadius, BorderRadius.circular(20), t),
-                    boxShadow: [BoxShadow(color: colors.foreground.withValues(alpha: 0.08 * t), blurRadius: 24 * t, offset: Offset(0, 12 * t))],
+                    boxShadow: [BoxShadow(color: const Color(0xFF000000).withValues(alpha: 0.12 * t), blurRadius: 24 * t, offset: Offset(0, 12 * t))],
                   ),
                   child: Stack(
                     fit: StackFit.expand,

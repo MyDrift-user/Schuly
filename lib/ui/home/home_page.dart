@@ -69,12 +69,15 @@ class HomePage extends StatelessWidget {
       return d != null && daysBetween(fromApiDate(d), today) <= 14;
     }).take(3).toList();
 
+    // Same period the grades tab opens on, so both screens show one number.
+    final newest = graded.map((e) => semesterKey(examById[e.key]?.date)).where((k) => k != 0).fold(0, (m, k) => k > m ? k : m);
     final byClass = <String, List<ExamDto>>{};
     for (final e in graded) {
       final exam = examById[e.key];
-      if (exam != null) byClass.putIfAbsent(exam.classId ?? '-', () => []).add(exam);
+      if (exam != null && semesterKey(exam.date) == newest) byClass.putIfAbsent(exam.classId ?? '-', () => []).add(exam);
     }
     final average = overallAverage(byClass, myGrades, GradeSettings.instance);
+    final absenceCount = svc.absences.where((a) => a.type != AbsenceType.delay).length;
 
     final recentAbsences = svc.absences.where((a) => daysBetween(a.from, today) <= 14).toList()..sort((a, b) => b.from.compareTo(a.from));
     final holidaySoon = nextHoliday != null && daysBetween(today, nextHoliday.date) <= 21;
@@ -91,14 +94,14 @@ class HomePage extends StatelessWidget {
             ),
           HomeTile.absences => StatCard(
               icon: FIcons.calendarOff,
-              value: '${svc.absences.length}',
-              label: svc.absences.length == 1 ? 'Absence' : 'Absences',
+              value: '$absenceCount',
+              label: absenceCount == 1 ? 'Absence' : 'Absences',
               onPress: () => TabRequests.request(DashboardTab.absences),
             ),
           HomeTile.holiday => StatCard(
               icon: FIcons.treePalm,
               value: nextHoliday == null ? '-' : _daysUntil(nextHoliday.date),
-              label: 'Holidays',
+              label: 'To holidays',
               onPress: () => TabRequests.request(DashboardTab.timetable),
             ),
           HomeTile.tests => StatCard(
@@ -149,7 +152,7 @@ class HomePage extends StatelessWidget {
                           SectionHeader(
                             icon: FIcons.calendarDays,
                             title: 'Today',
-                            actionLabel: 'Timetable',
+                            actionLabel: 'All',
                             onAction: () => TabRequests.request(DashboardTab.timetable),
                           ),
                           for (var i = 0; i < items.length; i++)
@@ -178,7 +181,7 @@ class HomePage extends StatelessWidget {
                 SectionHeader(
                   icon: FIcons.chartColumn,
                   title: 'New grades',
-                  actionLabel: 'All grades',
+                  actionLabel: 'All',
                   onAction: () => TabRequests.request(DashboardTab.grades),
                 ),
                 FTileGroup(
@@ -227,6 +230,7 @@ class HomePage extends StatelessWidget {
                       DenseTile(
                         prefix: DenseDate(a.from, color: a.type == AbsenceType.delay ? Accent.amber.of(context) : Accent.red.of(context)),
                         title: a.reason.isNotEmpty ? a.reason : 'Absence',
+                        trailing: a.type == AbsenceType.delay ? 'Delay' : null,
                         onPress: () => TabRequests.request(DashboardTab.absences),
                       ),
                   ],
@@ -270,6 +274,6 @@ class HomePage extends StatelessWidget {
   static String _daysUntil(DateTime d) {
     final days = daysBetween(today, d);
     if (days <= 0) return 'Now';
-    return '${days}d';
+    return '$days ${days == 1 ? 'day' : 'days'}';
   }
 }

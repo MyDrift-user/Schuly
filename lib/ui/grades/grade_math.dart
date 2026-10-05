@@ -3,6 +3,24 @@ import 'package:schuly_api/schuly_api.dart';
 import '../../services/grade_settings.dart';
 import '../core/grade_color.dart';
 
+/// Swiss school semesters: August to January is the first half, February to
+/// July the second. Keyed as year*10 + half; 0 for undated.
+int semesterKey(Date? d) {
+  if (d == null) return 0;
+  if (d.month >= 8) return d.year * 10 + 1;
+  if (d.month <= 1) return (d.year - 1) * 10 + 1;
+  return (d.year - 1) * 10 + 2;
+}
+
+/// "Semester 1 · 26/27", "School year 26/27", or "Undated".
+String periodLabel(int key) {
+  if (key == 0) return 'Undated';
+  final year = key ~/ 10, half = key % 10;
+  final a = (year % 100).toString().padLeft(2, '0');
+  final b = ((year + 1) % 100).toString().padLeft(2, '0');
+  return half == 0 ? 'School year $a/$b' : 'Semester $half · $a/$b';
+}
+
 /// Weighted average of the graded exams in [exams], or null when none is graded.
 double? subjectAverage(Iterable<ExamDto> exams, Map<String, GradeDto> myGrades) {
   double ws = 0, ss = 0;

@@ -25,22 +25,7 @@ class GradesPage extends StatefulWidget {
 class _GradesPageState extends State<GradesPage> {
   int? _selectedKey;
 
-  static int _semesterKey(Date? d) {
-    if (d == null) return 0;
-    if (d.month >= 8) return d.year * 10 + 1;
-    if (d.month <= 1) return (d.year - 1) * 10 + 1;
-    return (d.year - 1) * 10 + 2;
-  }
-
   static bool _isYear(int key) => key != 0 && key % 10 == 0;
-
-  static String _periodLabel(int key) {
-    if (key == 0) return 'Undated';
-    final year = key ~/ 10, half = key % 10;
-    final a = (year % 100).toString().padLeft(2, '0');
-    final b = ((year + 1) % 100).toString().padLeft(2, '0');
-    return half == 0 ? '$a/$b' : '$half. $a/$b'; // "25/26" vs "2. 25/26"
-  }
 
   @override
   Widget build(BuildContext context) => ListenableBuilder(listenable: Listenable.merge([LayoutPrefs.instance, GradeSettings.instance]), builder: (context, _) => _build(context));
@@ -71,7 +56,7 @@ class _GradesPageState extends State<GradesPage> {
       );
     }
 
-    final semKeys = {for (final e in graded) _semesterKey(e.date)};
+    final semKeys = {for (final e in graded) semesterKey(e.date)};
     final yearsDesc = {for (final k in semKeys) k ~/ 10}.toList()..sort((a, b) => b.compareTo(a));
     final periods = <int>[];
     for (final y in yearsDesc) {
@@ -98,7 +83,7 @@ class _GradesPageState extends State<GradesPage> {
     final byClass = <String, List<ExamDto>>{};
     final inPeriod = <ExamDto>[];
     for (final e in graded) {
-      if (!inSelection(_semesterKey(e.date))) continue;
+      if (!inSelection(semesterKey(e.date))) continue;
       inPeriod.add(e);
       byClass.putIfAbsent(e.classId ?? '-', () => []).add(e);
     }
@@ -138,7 +123,7 @@ class _GradesPageState extends State<GradesPage> {
             icon: FIcons.trophy,
             accent: best == null ? Accent.neutral : gradeAccent(best.value),
             value: best == null ? '-' : formatGrade(best.value),
-            label: best == null ? 'Best subject' : (classNames[best.key] ?? 'Best subject'),
+            label: best == null ? 'Best subject' : 'Best · ${subjectCode(classNames[best.key] ?? '')}',
           ),
         'below' => StatCard(
             icon: below > 0 ? FIcons.triangleAlert : FIcons.badgeCheck,
@@ -169,10 +154,10 @@ class _GradesPageState extends State<GradesPage> {
                 Expanded(child: Text('Grades', style: typography.xl2.copyWith(fontWeight: FontWeight.w800, height: 1))),
                 if (periods.length > 1)
                   SizedBox(
-                    width: 140,
+                    width: 180,
                     child: FSelect<int>(
                       control: FSelectControl<int>.lifted(value: selected, onChange: (k) => setState(() => _selectedKey = k ?? selected)),
-                      items: {for (final k in periods) _periodLabel(k): k},
+                      items: {for (final k in periods) periodLabel(k): k},
                     ),
                   ),
               ],
@@ -242,9 +227,9 @@ class _ClassSection extends StatelessWidget {
               DenseTile(
                 prefix: e.date != null ? DenseDate(fromApiDate(e.date!)) : const Icon(FIcons.fileText, size: 18),
                 title: e.name,
-                trailing: isGraded(e.classAverage) ? 'Ø ${formatGrade(e.classAverage)}' : null,
+                trailing: isGraded(e.classAverage) ? 'class Ø ${formatGrade(e.classAverage)}' : null,
                 suffix: GradePill(myGrades[e.id]?.score),
-                onPress: () => _showExamDetail(context, e, myGrades[e.id]),
+                onPress: () => _showExamDetail(context, e, myGrades[e.id], subject: title),
               ),
           ],
         ),
@@ -253,19 +238,20 @@ class _ClassSection extends StatelessWidget {
   }
 }
 
-void _showExamDetail(BuildContext context, ExamDto exam, GradeDto? grade) {
+void _showExamDetail(BuildContext context, ExamDto exam, GradeDto? grade, {String? subject}) {
   showFSheet<void>(
     context: context,
     side: FLayout.btt,
     mainAxisMaxRatio: null,
-    builder: (sheetCtx) => _ExamDetailSheet(exam: exam, grade: grade),
+    builder: (sheetCtx) => _ExamDetailSheet(exam: exam, grade: grade, subject: subject),
   );
 }
 
 class _ExamDetailSheet extends StatelessWidget {
   final ExamDto exam;
   final GradeDto? grade;
-  const _ExamDetailSheet({required this.exam, required this.grade});
+  final String? subject;
+  const _ExamDetailSheet({required this.exam, required this.grade, this.subject});
 
   @override
   Widget build(BuildContext context) {
@@ -321,7 +307,8 @@ class _ExamDetailSheet extends StatelessWidget {
                     const SizedBox(height: 2),
                     Text(
                       [
-                        if (exam.date != null) formatDayShort(fromApiDate(exam.date!)),
+                        if (subject?.isNotEmpty ?? false) subject!,
+                        if (exam.date != null) formatDate(fromApiDate(exam.date!)),
                         if ((grade?.weighting ?? 1) != 1) 'weight ${formatGrade(grade!.weighting ?? 1)}',
                       ].join(' · '),
                       style: typography.sm.copyWith(color: colors.mutedForeground),

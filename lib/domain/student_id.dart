@@ -47,8 +47,8 @@ class StudentIdCard {
 
   /// Filled from the profile while the Schulnetz ID page is not wired up yet.
   factory StudentIdCard.fromProfile(SchoolUserDto me, {String? schoolName, String? photoUrl}) => StudentIdCard(
-        title: 'Student ID',
-        schoolLabel: 'School',
+        title: 'Lernendenausweis',
+        schoolLabel: 'Schule',
         schoolName: schoolName ?? me.schoolName ?? '',
         lastName: me.lastName,
         firstName: me.firstName,
