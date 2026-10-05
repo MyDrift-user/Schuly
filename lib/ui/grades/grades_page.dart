@@ -344,7 +344,7 @@ class _ExamDetailSheet extends StatelessWidget {
                 Icon(
                   diff >= 0 ? FIcons.trendingUp : FIcons.trendingDown,
                   size: 16,
-                  color: diff >= 0 ? Accent.green.color : Accent.amber.color,
+                  color: diff >= 0 ? Accent.green.of(context) : Accent.amber.of(context),
                 ),
                 const SizedBox(width: 6),
                 Text(

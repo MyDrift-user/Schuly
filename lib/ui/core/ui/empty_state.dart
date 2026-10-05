@@ -24,7 +24,7 @@ class EmptyState extends StatelessWidget {
     final body = Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(icon, size: compact ? 28 : 40, color: accent == Accent.neutral ? colors.mutedForeground : accent.color),
+        Icon(icon, size: compact ? 28 : 40, color: accent == Accent.neutral ? colors.mutedForeground : accent.of(context)),
         SizedBox(height: compact ? 10 : 16),
         Text(title,
             textAlign: TextAlign.center,

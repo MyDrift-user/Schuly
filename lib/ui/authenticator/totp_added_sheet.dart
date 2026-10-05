@@ -78,7 +78,7 @@ class _TotpAddedSheetState extends State<_TotpAddedSheet> {
           children: [
             Row(
               children: [
-                Icon(FIcons.badgeCheck, size: 28, color: Accent.green.color),
+                Icon(FIcons.badgeCheck, size: 28, color: Accent.green.of(context)),
                 const SizedBox(width: 14),
                 Expanded(
                   child: Column(

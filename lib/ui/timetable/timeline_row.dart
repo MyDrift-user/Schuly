@@ -38,7 +38,7 @@ class TimelineRow extends StatelessWidget {
     if (dayItem is LessonItem) {
       final style = entryStyle(context, dayItem.entry.entryType);
       final title = dayItem.entry.title.isNotEmpty ? dayItem.entry.title : style.label;
-      accent = dayItem.entry.entryType == AgendaEntryType.lesson ? subjectAccent(title).color : style.accent.color;
+      accent = dayItem.entry.entryType == AgendaEntryType.lesson ? subjectAccent(title).of(context) : style.accent.of(context);
     } else {
       accent = colors.mutedForeground;
     }

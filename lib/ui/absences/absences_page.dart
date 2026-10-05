@@ -116,11 +116,11 @@ class _TypeBadge extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
-        border: Border.all(color: accent.color.withValues(alpha: 0.5)),
+        border: Border.all(color: accent.of(context).withValues(alpha: 0.5)),
         borderRadius: BorderRadius.circular(6),
       ),
       child: Text(isDelay ? 'Delay' : 'Absence',
-          style: TextStyle(color: accent.color, fontWeight: FontWeight.w600, fontSize: 12)),
+          style: TextStyle(color: accent.of(context), fontWeight: FontWeight.w600, fontSize: 12)),
     );
   }
 }
@@ -374,7 +374,7 @@ class _TypeToggle extends StatelessWidget {
             ),
             child: Row(
               children: [
-                Icon(icon, size: 20, color: selected ? colors.primaryForeground : accent.color),
+                Icon(icon, size: 20, color: selected ? colors.primaryForeground : accent.of(context)),
                 const SizedBox(width: 10),
                 Expanded(
                   child: Column(

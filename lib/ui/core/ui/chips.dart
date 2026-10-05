@@ -61,14 +61,14 @@ class SubjectChip extends StatelessWidget {
       alignment: Alignment.center,
       decoration: bordered
           ? BoxDecoration(
-              border: Border.all(color: highlighted ? accent.color : colors.border, width: highlighted ? 1.5 : 1),
+              border: Border.all(color: highlighted ? accent.of(context) : colors.border, width: highlighted ? 1.5 : 1),
               borderRadius: BorderRadius.circular(8),
             )
           : null,
       child: Text(
         subjectCode(name),
         style: typography.sm.copyWith(
-          color: accent.color,
+          color: accent.of(context),
           fontWeight: FontWeight.w800,
           letterSpacing: 0.5,
           height: 1,
@@ -114,7 +114,7 @@ class DateChip extends StatelessWidget {
               style: typography.base.copyWith(
                 fontWeight: FontWeight.w700,
                 height: 1,
-                color: isToday ? colors.primaryForeground : (accent?.color ?? colors.foreground),
+                color: isToday ? colors.primaryForeground : (accent?.of(context) ?? colors.foreground),
                 fontFeatures: const [FontFeature.tabularFigures()],
               ),
             ),

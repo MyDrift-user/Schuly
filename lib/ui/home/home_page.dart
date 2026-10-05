@@ -225,7 +225,7 @@ class HomePage extends StatelessWidget {
                   children: [
                     for (final a in recentAbsences.take(2))
                       DenseTile(
-                        prefix: DenseDate(a.from, color: a.type == AbsenceType.delay ? Accent.amber.color : Accent.red.color),
+                        prefix: DenseDate(a.from, color: a.type == AbsenceType.delay ? Accent.amber.of(context) : Accent.red.of(context)),
                         title: a.reason.isNotEmpty ? a.reason : 'Absence',
                         onPress: () => TabRequests.request(DashboardTab.absences),
                       ),

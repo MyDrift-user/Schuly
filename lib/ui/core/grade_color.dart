@@ -3,7 +3,7 @@ import 'package:forui/forui.dart';
 
 import 'ui/accents.dart';
 
-Color gradeColor(BuildContext context, num grade) => gradeAccent(grade).color;
+Color gradeColor(BuildContext context, num grade) => gradeAccent(grade).of(context);
 
 bool isGraded(num? score) => score != null && score > 0;
 
@@ -33,13 +33,13 @@ class GradePill extends StatelessWidget {
           ? const EdgeInsets.symmetric(horizontal: 14, vertical: 6)
           : const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
-        border: Border.all(color: graded ? accent.color.withValues(alpha: 0.5) : colors.border, width: large ? 1.5 : 1),
+        border: Border.all(color: graded ? accent.of(context).withValues(alpha: 0.5) : colors.border, width: large ? 1.5 : 1),
         borderRadius: BorderRadius.circular(large ? 12 : 8),
       ),
       child: Text(
         graded ? formatGrade(score!) : '-',
         style: (large ? typography.xl2 : typography.sm).copyWith(
-          color: graded ? accent.color : colors.mutedForeground,
+          color: graded ? accent.of(context) : colors.mutedForeground,
           fontWeight: FontWeight.w700,
           fontFeatures: const [FontFeature.tabularFigures()],
         ),

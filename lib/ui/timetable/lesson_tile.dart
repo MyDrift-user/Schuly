@@ -60,14 +60,14 @@ class LessonTile extends StatelessWidget with FTileMixin {
       final place = item.entry.place;
       return FTile(
         style: denseTileStyle,
-        prefix: item.entry.entryType == AgendaEntryType.lesson ? SubjectChip(title, highlighted: current, size: 30) : Icon(style.icon, size: 18, color: style.accent.color),
+        prefix: item.entry.entryType == AgendaEntryType.lesson ? SubjectChip(title, highlighted: current, size: 30) : Icon(style.icon, size: 18, color: style.accent.of(context)),
         title: Text(
           place == null || place.isEmpty ? title : '$title · $place',
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
-          style: current ? TextStyle(color: accent.color, fontWeight: FontWeight.w700) : null,
+          style: current ? TextStyle(color: accent.of(context), fontWeight: FontWeight.w700) : null,
         ),
-        details: remaining == null ? null : Text(remaining, style: typography.sm.copyWith(color: accent.color, fontWeight: FontWeight.w600)),
+        details: remaining == null ? null : Text(remaining, style: typography.sm.copyWith(color: accent.of(context), fontWeight: FontWeight.w600)),
         onPress: onPress,
       );
     }
@@ -75,14 +75,14 @@ class LessonTile extends StatelessWidget with FTileMixin {
     return FTile(
       prefix: item.entry.entryType == AgendaEntryType.lesson
           ? SubjectChip(title, highlighted: current)
-          : Icon(style.icon, color: style.accent.color),
-      title: Text(title, style: current ? TextStyle(color: accent.color, fontWeight: FontWeight.w700) : null),
+          : Icon(style.icon, color: style.accent.of(context)),
+      title: Text(title, style: current ? TextStyle(color: accent.of(context), fontWeight: FontWeight.w700) : null),
       subtitle: subtitle,
       details: showTime
           ? Text(remaining ?? time,
               style: typography.sm.copyWith(
                 fontWeight: FontWeight.w600,
-                color: remaining == null ? colors.mutedForeground : accent.color,
+                color: remaining == null ? colors.mutedForeground : accent.of(context),
                 fontFeatures: const [FontFeature.tabularFigures()],
               ))
           : (item.entry.entryType != AgendaEntryType.lesson && !current ? _TypeChip(label: style.label, accent: style.accent) : null),
@@ -101,9 +101,9 @@ class _TypeChip extends StatelessWidget {
   Widget build(BuildContext context) => Container(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
         decoration: BoxDecoration(
-          border: Border.all(color: accent.color.withValues(alpha: 0.5)),
+          border: Border.all(color: accent.of(context).withValues(alpha: 0.5)),
           borderRadius: BorderRadius.circular(6),
         ),
-        child: Text(label, style: context.theme.typography.xs.copyWith(color: accent.color, fontWeight: FontWeight.w600)),
+        child: Text(label, style: context.theme.typography.xs.copyWith(color: accent.of(context), fontWeight: FontWeight.w600)),
       );
 }

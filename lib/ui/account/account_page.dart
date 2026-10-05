@@ -391,7 +391,7 @@ class _AccountPageState extends State<AccountPage> with SingleTickerProviderStat
                 FTile(
                   prefix: Icon(
                     (_syncError?.isNotEmpty ?? false) ? FIcons.circleAlert : FIcons.circleCheck,
-                    color: (_syncError?.isNotEmpty ?? false) ? Accent.red.color : Accent.green.color,
+                    color: (_syncError?.isNotEmpty ?? false) ? Accent.red.of(context) : Accent.green.of(context),
                   ),
                   title: const Text('Last sync'),
                   subtitle: (_syncError?.isNotEmpty ?? false)
